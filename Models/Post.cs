@@ -9,5 +9,12 @@
         public required ICollection<PostTag> PostTags { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public int CategoryId { get; set; }
+        public Category? Category { get; set; }
+
+        public int UserId { get; set; }
+        public User? User { get; set; }
+
     }
 }
