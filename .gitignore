@@ -1,0 +1,24 @@
+# Visual Studio cache
+.vs/
+
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+
+# Logs
+*.log
+
+# SQLite Database
+*.db
+
+# Publish
+publish/
+
+# Temporary files
+*.tmp
+*.temp
