@@ -1,14 +1,129 @@
 ﻿@{
     ViewData["Title"] = "Home";
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
 }
 
-<h1>BlogAura</h1>
-<p>Welcome to your blog management system!</p>
+@if (!isAuthenticated)
+{
+    <div class="home-landing">
+        <div class="home-landing-left">
+            <div class="home-logo-circle">
+                <span class="home-logo-text">BA</span>
+            </div>
+            <h1 class="home-title">
+                Découvrez les moments
+                <br />
+                <span class="home-title-gradient">du quotidien sur BlogAura.</span>
+            </h1>
+            <p class="home-subtitle">
+                Partagez vos posts, explorez le contenu de vos ami(e)s et restez connectés
+                avec une expérience inspirée d'Instagram.
+            </p>
 
-<ul>
-    <li><a asp-controller="Category" asp-action="Index">Categories</a></li>
-    <li><a asp-controller="Post" asp-action="Index">Posts</a></li>
-    <li><a asp-controller="Tag" asp-action="Index">Tags</a></li>
-    <li><a asp-controller="User" asp-action="Index">Users</a></li>
-    <li><a asp-controller="Comment" asp-action="Index">Comments</a></li>
-</ul>
+            <div class="home-image-stack">
+                <div class="home-image-card home-image-card-main"></div>
+                <div class="home-image-card home-image-card-secondary"></div>
+                <div class="home-image-card home-image-card-tertiary"></div>
+            </div>
+        </div>
+
+        <div class="home-landing-right">
+            <div class="home-auth-card">
+                <h2 class="home-auth-title">Se connecter à BlogAura</h2>
+
+                <div class="home-auth-actions">
+                    <a asp-controller="Home" asp-action="Login" class="home-btn home-btn-primary">Se connecter</a>
+                    <a asp-controller="Home" asp-action="Register" class="home-btn home-btn-outline">Créer un nouveau compte</a>
+                </div>
+
+                <p class="home-auth-hint">En continuant, vous acceptez nos conditions et notre politique de confidentialité.</p>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    var userName = User.Identity?.Name ?? "Utilisateur";
+    var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+    var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
+
+    <div class="home-dashboard">
+        <aside class="home-sidebar">
+            <div class="home-profile-card">
+                <div class="home-profile-header">
+                    <div class="home-profile-banner"></div>
+                    <div class="home-profile-avatar-wrapper">
+                        <div class="home-profile-avatar-circle">@initial</div>
+                    </div>
+                </div>
+                <div class="home-profile-body">
+                    <h3 class="home-profile-name">@userName</h3>
+                    <p class="home-profile-role">Membre BlogAura</p>
+                    <p class="home-profile-email">@email</p>
+                </div>
+                <div class="home-profile-stats">
+                    <div class="home-profile-stat">
+                        <div class="home-profile-stat-label">Posts</div>
+                        <div class="home-profile-stat-value">0</div>
+                    </div>
+                    <div class="home-profile-stat">
+                        <div class="home-profile-stat-label">Abonnements</div>
+                        <div class="home-profile-stat-value">0</div>
+                    </div>
+                    <div class="home-profile-stat">
+                        <div class="home-profile-stat-label">Abonnés</div>
+                        <div class="home-profile-stat-value">0</div>
+                    </div>
+                </div>
+                <div class="home-profile-footer">
+                    <a asp-controller="Home" asp-action="Profile" class="home-btn home-btn-outline home-profile-btn">Voir le profil</a>
+                </div>
+            </div>
+        </aside>
+
+        <section class="home-main">
+            <div class="home-feed-header">
+                <h2>Derniers posts</h2>
+                <a asp-page="/Posts/Create" class="home-btn home-btn-primary">Créer un post</a>
+            </div>
+
+            <div class="home-feed-grid">
+                <div class="home-feed-card">
+                    <div class="home-feed-card-header">
+                        <div class="home-avatar-circle">@initial</div>
+                        <div>
+                            <div class="home-feed-username">@userName</div>
+                            <div class="home-feed-meta">à l'instant</div>
+                        </div>
+                    </div>
+                    <div class="home-feed-content">
+                        Ceci est un exemple de post. Plus tard, cette zone affichera le contenu réel
+                        provenant de votre base de données.
+                    </div>
+                    <div class="home-feed-footer">
+                        <span>❤ 0</span>
+                        <span>💬 0</span>
+                    </div>
+                </div>
+
+                <div class="home-feed-card">
+                    <div class="home-feed-card-header">
+                        <div class="home-avatar-circle">A</div>
+                        <div>
+                            <div class="home-feed-username">Autre utilisateur</div>
+                            <div class="home-feed-meta">il y a 5 min</div>
+                        </div>
+                    </div>
+                    <div class="home-feed-content">
+                        Utilisez cette page comme votre fil d'actualité principal. Nous y lierons
+                        ensuite les vrais posts et interactions.
+                    </div>
+                    <div class="home-feed-footer">
+                        <span>❤ 3</span>
+                        <span>💬 1</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+}

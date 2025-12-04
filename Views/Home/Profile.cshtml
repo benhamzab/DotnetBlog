@@ -1,0 +1,75 @@
+@model BLOGAURA.Models.User
+@{
+    ViewData["Title"] = "Mon profil";
+    var userName = Model.Name;
+    var email = Model.Email;
+    var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
+}
+
+<div class="home-dashboard">
+    <aside class="home-sidebar">
+        <div class="home-profile-card">
+            <div class="home-profile-header">
+                <div class="home-profile-banner"></div>
+                <div class="home-profile-avatar-wrapper">
+                    <div class="home-profile-avatar-circle">@initial</div>
+                </div>
+            </div>
+            <div class="home-profile-body">
+                <h3 class="home-profile-name">@userName</h3>
+                <p class="home-profile-role">@Model.Role</p>
+                <p class="home-profile-email">@email</p>
+            </div>
+            <div class="home-profile-stats">
+                <div class="home-profile-stat">
+                    <div class="home-profile-stat-label">Posts</div>
+                    <div class="home-profile-stat-value">0</div>
+                </div>
+                <div class="home-profile-stat">
+                    <div class="home-profile-stat-label">Abonnements</div>
+                    <div class="home-profile-stat-value">0</div>
+                </div>
+                <div class="home-profile-stat">
+                    <div class="home-profile-stat-label">Abonnés</div>
+                    <div class="home-profile-stat-value">0</div>
+                </div>
+            </div>
+            <div class="home-profile-footer">
+                <a asp-controller="Home" asp-action="Index" class="home-btn home-btn-outline home-profile-btn">Retour au fil</a>
+            </div>
+        </div>
+    </aside>
+
+    <section class="home-main">
+        <div class="home-feed-header">
+            <h2>Mes posts</h2>
+            <a asp-page="/Posts/Create" class="home-btn home-btn-primary">Créer un post</a>
+        </div>
+
+        <div class="home-feed-grid">
+            <div class="home-feed-card">
+                <div class="home-feed-card-header">
+                    <div class="home-avatar-circle">@initial</div>
+                    <div>
+                        <div class="home-feed-username">@userName</div>
+                        <div class="home-feed-meta">exemple</div>
+                    </div>
+                </div>
+                <div class="home-feed-content">
+                    Ceci est un exemple de post sur votre profil. Plus tard, cette zone affichera
+                    uniquement les posts créés par vous.
+                </div>
+                <div class="home-feed-footer">
+                    <span>❤ 0</span>
+                    <span>💬 0</span>
+                </div>
+            </div>
+
+            <div class="home-feed-card">
+                <div class="home-feed-content">
+                    <a asp-page="/Posts/Index" class="home-btn home-btn-outline">Voir tous mes posts</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
