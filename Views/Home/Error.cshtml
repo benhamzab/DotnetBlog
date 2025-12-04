@@ -1,0 +1,16 @@
+﻿@model BLOGAURA.Models.ErrorViewModel
+
+@{
+    ViewData["Title"] = "Erreur";
+}
+
+<h1 class="text-danger">Une erreur s'est produite.</h1>
+
+@if (Model.ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+    </p>
+}
+
+<p>Une erreur inattendue est survenue. Veuillez réessayer plus tard.</p>

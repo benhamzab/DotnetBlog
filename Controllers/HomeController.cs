@@ -2,160 +2,65 @@ using System.Diagnostics;
 using System.Security.Claims;
 using BLOGAURA.Data;
 using BLOGAURA.Models;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using BLOGAURA.Models.Auth;
+using BLOGAURA.Models.Posts;
+using BLOGAURA.Services.Posts;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using BLOGAURA.Models;
 
 namespace BLOGAURA.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly BlogContext _context;
-        private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly IPostService _postService;
+        private readonly ApplicationDbContext _authContext;
 
-        public HomeController(ILogger<HomeController> logger, BlogContext context, IPasswordHasher<User> passwordHasher)
+        public HomeController(ILogger<HomeController> logger, IPostService postService, ApplicationDbContext authContext)
         {
             _logger = logger;
-            _context = context;
-            _passwordHasher = passwordHasher;
+            _postService = postService;
+            _authContext = authContext;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            if (!(User.Identity?.IsAuthenticated ?? false))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            ViewData["UserName"] = User.Identity?.Name;
+
+            // Load latest posts for the home feed
+            var posts = await _postService.GetLatestPostsAsync(20);
+            return View(posts);
         }
 
         [Authorize]
-        public IActionResult Profile()
+        public async Task<IActionResult> Profile()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             {
-                return RedirectToAction("Login");
+                return RedirectToAction("Login", "Auth");
             }
 
-            var id = int.Parse(userIdClaim.Value);
-            var user = _context.User.FirstOrDefault(u => u.Id == id);
+            var user = _authContext.Users.FirstOrDefault(u => u.Id == userId);
             if (user == null)
             {
-                return RedirectToAction("Login");
+                return RedirectToAction("Login", "Auth");
             }
 
-            return View(user);
-        }
-
-        public IActionResult Login()
-        {
-            if (User.Identity?.IsAuthenticated ?? false)
+            var posts = await _postService.GetUserPostsAsync(userId);
+            var vm = new ProfileViewModel
             {
-                return RedirectToAction("Index", "Home");
-            }
-
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Login(User model)
-        {
-            if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.PasswordHash))
-            {
-                ModelState.AddModelError(string.Empty, "Email and password are required.");
-                return View(model);
-            }
-
-            var user = _context.User.FirstOrDefault(u => u.Email == model.Email);
-            if (user == null)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
-                return View(model);
-            }
-
-            var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.PasswordHash);
-            if (result == PasswordVerificationResult.Failed)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
-                return View(model);
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
+                User = user,
+                Posts = posts
             };
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Index", "Home");
-        }
-
-        public IActionResult Register()
-        {
-            if (User.Identity?.IsAuthenticated ?? false)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Register(User model, string ConfirmPassword, DateTime DateOfBirth)
-        {
-            if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.PasswordHash))
-            {
-                ModelState.AddModelError(string.Empty, "All fields are required.");
-                return View(model);
-            }
-
-            if (model.PasswordHash != ConfirmPassword)
-            {
-                ModelState.AddModelError(string.Empty, "Passwords do not match.");
-                return View(model);
-            }
-
-            if (_context.User.Any(u => u.Email == model.Email))
-            {
-                ModelState.AddModelError("Email", "Email is already in use.");
-                return View(model);
-            }
-
-            var user = new User
-            {
-                Name = model.Name,
-                Email = model.Email,
-                Role = "User",
-                CreatedAt = DateTime.Now
-            };
-
-            user.PasswordHash = _passwordHasher.HashPassword(user, model.PasswordHash);
-
-            _context.User.Add(user);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Registration successful. Please log in.";
-            return RedirectToAction("Login", "Home");
+            return View(vm);
         }
 
         public IActionResult Privacy()
@@ -168,5 +73,6 @@ namespace BLOGAURA.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
     }
 }

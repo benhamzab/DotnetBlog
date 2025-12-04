@@ -1,4 +1,5 @@
-﻿@{
+﻿@model IEnumerable<BLOGAURA.Models.Posts.Post>
+@{
     ViewData["Title"] = "Home";
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
 }
@@ -32,8 +33,8 @@
                 <h2 class="home-auth-title">Se connecter à BlogAura</h2>
 
                 <div class="home-auth-actions">
-                    <a asp-controller="Home" asp-action="Login" class="home-btn home-btn-primary">Se connecter</a>
-                    <a asp-controller="Home" asp-action="Register" class="home-btn home-btn-outline">Créer un nouveau compte</a>
+                    <a asp-controller="Auth" asp-action="Login" class="home-btn home-btn-primary">Se connecter</a>
+                    <a asp-controller="Auth" asp-action="Register" class="home-btn home-btn-outline">Créer un nouveau compte</a>
                 </div>
 
                 <p class="home-auth-hint">En continuant, vous acceptez nos conditions et notre politique de confidentialité.</p>
@@ -84,45 +85,21 @@ else
         <section class="home-main">
             <div class="home-feed-header">
                 <h2>Derniers posts</h2>
-                <a asp-page="/Posts/Create" class="home-btn home-btn-primary">Créer un post</a>
+                <a asp-controller="Posts" asp-action="CreatePost" class="home-btn home-btn-primary">Créer un post</a>
             </div>
 
             <div class="home-feed-grid">
-                <div class="home-feed-card">
-                    <div class="home-feed-card-header">
-                        <div class="home-avatar-circle">@initial</div>
-                        <div>
-                            <div class="home-feed-username">@userName</div>
-                            <div class="home-feed-meta">à l'instant</div>
-                        </div>
-                    </div>
-                    <div class="home-feed-content">
-                        Ceci est un exemple de post. Plus tard, cette zone affichera le contenu réel
-                        provenant de votre base de données.
-                    </div>
-                    <div class="home-feed-footer">
-                        <span>❤ 0</span>
-                        <span>💬 0</span>
-                    </div>
-                </div>
-
-                <div class="home-feed-card">
-                    <div class="home-feed-card-header">
-                        <div class="home-avatar-circle">A</div>
-                        <div>
-                            <div class="home-feed-username">Autre utilisateur</div>
-                            <div class="home-feed-meta">il y a 5 min</div>
-                        </div>
-                    </div>
-                    <div class="home-feed-content">
-                        Utilisez cette page comme votre fil d'actualité principal. Nous y lierons
-                        ensuite les vrais posts et interactions.
-                    </div>
-                    <div class="home-feed-footer">
-                        <span>❤ 3</span>
-                        <span>💬 1</span>
-                    </div>
-                </div>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var post in Model)
+                    {
+                        @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", post)
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">Aucun post pour le moment. Soyez le premier à publier !</p>
+                }
             </div>
         </section>
     </div>

@@ -1,8 +1,8 @@
-@model BLOGAURA.Models.User
+@model BLOGAURA.Models.Posts.ProfileViewModel
 @{
     ViewData["Title"] = "Mon profil";
-    var userName = Model.Name;
-    var email = Model.Email;
+    var userName = Model.User.Username;
+    var email = Model.User.Email;
     var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
 }
 
@@ -17,7 +17,7 @@
             </div>
             <div class="home-profile-body">
                 <h3 class="home-profile-name">@userName</h3>
-                <p class="home-profile-role">@Model.Role</p>
+                <p class="home-profile-role">Membre BlogAura</p>
                 <p class="home-profile-email">@email</p>
             </div>
             <div class="home-profile-stats">
@@ -41,35 +41,28 @@
     </aside>
 
     <section class="home-main">
+        @if (TempData["PostSuccess"] != null)
+        {
+            <div class="alert alert-success mb-3">@TempData["PostSuccess"]</div>
+        }
+
         <div class="home-feed-header">
             <h2>Mes posts</h2>
-            <a asp-page="/Posts/Create" class="home-btn home-btn-primary">Créer un post</a>
+            <a asp-controller="Posts" asp-action="CreatePost" class="home-btn home-btn-primary">Créer un post</a>
         </div>
 
         <div class="home-feed-grid">
-            <div class="home-feed-card">
-                <div class="home-feed-card-header">
-                    <div class="home-avatar-circle">@initial</div>
-                    <div>
-                        <div class="home-feed-username">@userName</div>
-                        <div class="home-feed-meta">exemple</div>
-                    </div>
-                </div>
-                <div class="home-feed-content">
-                    Ceci est un exemple de post sur votre profil. Plus tard, cette zone affichera
-                    uniquement les posts créés par vous.
-                </div>
-                <div class="home-feed-footer">
-                    <span>❤ 0</span>
-                    <span>💬 0</span>
-                </div>
-            </div>
-
-            <div class="home-feed-card">
-                <div class="home-feed-content">
-                    <a asp-page="/Posts/Index" class="home-btn home-btn-outline">Voir tous mes posts</a>
-                </div>
-            </div>
+            @if (Model.Posts != null && Model.Posts.Any())
+            {
+                foreach (var post in Model.Posts)
+                {
+                    @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", post)
+                }
+            }
+            else
+            {
+                <p class="text-muted">Vous n'avez pas encore publié de post.</p>
+            }
         </div>
     </section>
 </div>

@@ -1,47 +1,59 @@
 using Microsoft.EntityFrameworkCore;
-using BLOGAURA.Data;
-using BLOGAURA.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using BLOGAURA.Data;
+using BLOGAURA.Models.Auth;
+using BLOGAURA.Services.Auth;
+using BLOGAURA.Services.Posts;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Razor Pages and MVC controllers
 builder.Services.AddRazorPages();
+builder.Services.AddControllersWithViews();
 
+// Configure SQL Server for BlogContext
 builder.Services.AddDbContext<BlogContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+// Configure SQL Server for Authentication / Users context
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add authentication services
+builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, PasswordHasher<ApplicationUser>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPostService, PostService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Home/Login";
-        options.AccessDeniedPath = "/Home/Login";
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/Login";
     });
-
-builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+// Middleware pipeline
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Home/Error"); // Use Error page
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapRazorPages();
-app.Run();
-    
 
+app.Run();

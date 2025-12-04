@@ -1,0 +1,53 @@
+@model BLOGAURA.Models.Posts.Post
+
+@{
+    var content = Model.Content ?? string.Empty;
+    var isLong = content.Length > 220;
+    var preview = isLong ? content.Substring(0, 220) + "..." : content;
+}
+
+<div class="home-feed-card mb-3">
+    <div class="home-feed-card-header">
+        <div class="home-avatar-circle">
+            @if (!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
+            {
+                <img src="@Model.User.ProfilePictureUrl" alt="@Model.User.Username" class="home-avatar-img" />
+            }
+            else
+            {
+                @((Model.User?.Username?.FirstOrDefault() ?? 'U'))
+            }
+        </div>
+        <div>
+            <div class="home-feed-username">@Model.User?.Username ?? "Utilisateur"</div>
+            <div class="home-feed-meta">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
+        </div>
+    </div>
+
+    <div class="home-feed-content">
+        @preview
+        @if (isLong)
+        {
+            <span class="home-feed-more"> Voir plus…</span>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ImagePath))
+    {
+        <div class="mb-2">
+            <img src="@Model.ImagePath" alt="Image du post" class="home-feed-media" />
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.VideoPath))
+    {
+        <div class="mb-2">
+            <video src="@Model.VideoPath" controls class="home-feed-media"></video>
+        </div>
+    }
+
+    <div class="home-feed-footer">
+        <span>❤</span>
+        <span>💬</span>
+    </div>
+</div>
