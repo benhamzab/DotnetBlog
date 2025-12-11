@@ -13,8 +13,9 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllersWithViews();
 
 // Configure SQL Server for BlogContext
-builder.Services.AddDbContext<BlogContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// DISABLED: Conflicts with ApplicationDbContext - both were managing same database
+// builder.Services.AddDbContext<BlogContext>(options =>
+//     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure SQL Server for Authentication / Users context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

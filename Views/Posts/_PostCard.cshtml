@@ -19,7 +19,7 @@
             }
         </div>
         <div>
-            <div class="home-feed-username">@Model.User?.Username ?? "Utilisateur"</div>
+            <div class="home-feed-username">@(Model.User?.Username ?? "Utilisateur")</div>
             <div class="home-feed-meta">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
         </div>
     </div>
