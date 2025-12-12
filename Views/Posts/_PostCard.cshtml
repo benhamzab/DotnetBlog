@@ -11,15 +11,15 @@
         <div class="home-avatar-circle">
             @if (!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
             {
-                <img src="@Model.User.ProfilePictureUrl" alt="@Model.User.Username" class="home-avatar-img" />
+                <img src="@Url.Content(Model.User.ProfilePictureUrl)" alt="@Model.User.UserName" class="home-avatar-img" />
             }
             else
             {
-                @((Model.User?.Username?.FirstOrDefault() ?? 'U'))
+                @((Model.User?.UserName?.FirstOrDefault() ?? 'U'))
             }
         </div>
         <div>
-            <div class="home-feed-username">@(Model.User?.Username ?? "Utilisateur")</div>
+            <div class="home-feed-username">@(Model.User?.UserName ?? "Utilisateur")</div>
             <div class="home-feed-meta">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
         </div>
     </div>
@@ -32,22 +32,55 @@
         }
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.ImagePath))
+    @if (Model.Images != null && Model.Images.Any())
+    {
+        foreach (var img in Model.Images)
+        {
+            if (!string.IsNullOrEmpty(img.ImagePath))
+            {
+                <div class="mb-2">
+                    <img src="@Url.Content(img.ImagePath)" alt="Image du post" class="home-feed-media" />
+                </div>
+            }
+        }
+    }
+    else if (!string.IsNullOrEmpty(Model.ImagePath))
     {
         <div class="mb-2">
-            <img src="@Model.ImagePath" alt="Image du post" class="home-feed-media" />
+            <img src="@Url.Content(Model.ImagePath)" alt="Image du post" class="home-feed-media" />
         </div>
     }
 
     @if (!string.IsNullOrEmpty(Model.VideoPath))
     {
         <div class="mb-2">
-            <video src="@Model.VideoPath" controls class="home-feed-media"></video>
+            <video src="@Url.Content(Model.VideoPath)" controls class="home-feed-media"></video>
         </div>
     }
 
     <div class="home-feed-footer">
-        <span>❤</span>
-        <span>💬</span>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span>❤</span>
+                <span>💬</span>
+            </div>
+            
+            @{
+                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var isOwner = currentUserId != null && int.TryParse(currentUserId, out var userId) && userId == Model.UserId;
+            }
+            
+            @if (isOwner)
+            {
+                <div class="btn-group btn-group-sm">
+                    <a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm" title="Modifier">
+                        ✏️ Modifier
+                    </a>
+                    <a asp-controller="Posts" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger btn-sm" title="Supprimer">
+                        🗑️ Supprimer
+                    </a>
+                </div>
+            }
+        </div>
     </div>
 </div>

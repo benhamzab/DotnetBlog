@@ -1,0 +1,91 @@
+@model BLOGAURA.Models.Auth.UserSearchViewModel
+@{
+    ViewData["Title"] = "Rechercher des utilisateurs";
+}
+
+<div class="container mt-4" style="max-width: 900px;">
+    <h2 class="mb-4">🔍 Rechercher des utilisateurs</h2>
+
+    <!-- Search Form -->
+    <form method="get" asp-controller="Users" asp-action="Search" class="mb-4">
+        <div class="input-group input-group-lg">
+            <input type="text" name="query" class="form-control" placeholder="Rechercher un utilisateur..." value="@Model.Query" autofocus />
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                Rechercher
+            </button>
+        </div>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Query))
+    {
+        <p class="text-muted mb-3">
+            @Model.Results.Count résultat(s) pour "@Model.Query"
+        </p>
+
+        @if (Model.Results.Any())
+        {
+            <div class="row g-3">
+                @foreach (var user in Model.Results)
+                {
+                    var initial = string.IsNullOrWhiteSpace(user.UserName) ? "U" : user.UserName[0].ToString().ToUpperInvariant();
+                    var aboutPreview = string.IsNullOrWhiteSpace(user.About) ? "Aucune description" : 
+                        (user.About.Length > 100 ? user.About.Substring(0, 100) + "..." : user.About);
+
+                    <div class="col-12">
+                        <div class="card shadow-sm hover-card" style="transition: all 0.3s ease;">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <!-- Avatar -->
+                                <div style="flex-shrink: 0;">
+                                    @if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                                    {
+                                        <img src="@user.ProfilePictureUrl" alt="@user.UserName" 
+                                             style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                                            @initial
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- User Info -->
+                                <div style="flex-grow: 1;">
+                                    <h5 class="mb-1">@user.UserName</h5>
+                                    <p class="text-muted mb-0" style="font-size: 14px;">@aboutPreview</p>
+                                </div>
+
+                                <!-- View Profile Button -->
+                                <div>
+                                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@user.Id" 
+                                       class="btn btn-outline-primary">
+                                        Voir le profil
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                Aucun utilisateur trouvé pour "@Model.Query"
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <p class="text-muted">Entrez un nom d'utilisateur, email ou mot-clé pour rechercher</p>
+        </div>
+    }
+</div>
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    }
+</style>

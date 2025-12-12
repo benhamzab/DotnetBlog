@@ -1,0 +1,150 @@
+@model BLOGAURA.Models.Auth.EditProfileViewModel
+@{
+    ViewData["Title"] = "Modifier le profil";
+}
+
+<div class="container mt-4" style="max-width: 800px;">
+    <h2 class="mb-4">✏️ Modifier votre profil étudiant</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <form asp-controller="Profile" asp-action="Edit" method="post" class="needs-validation" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <!-- About Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📝 À propos de vous</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="About" class="form-label"></label>
+                    <textarea asp-for="About" class="form-control" rows="4" placeholder="Parlez de vous..."></textarea>
+                    <span asp-validation-for="About" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Info Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🎓 Parcours étudiant</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="University" class="form-label"></label>
+                        <input asp-for="University" class="form-control" placeholder="Ex: EMSI, UM6P, ENSAM..." />
+                        <span asp-validation-for="University" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Grade" class="form-label"></label>
+                        <input asp-for="Grade" class="form-control" placeholder="Ex: 1ère année, Licence 3, Master 1..." />
+                        <span asp-validation-for="Grade" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="City" class="form-label"></label>
+                        <input asp-for="City" class="form-control" placeholder="Ex: Casablanca, Rabat, Marrakech..." />
+                        <span asp-validation-for="City" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Age" class="form-label"></label>
+                        <input asp-for="Age" type="number" class="form-control" placeholder="Ex: 20" />
+                        <span asp-validation-for="Age" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interests & Events Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">🎟️ Événements & Centres d'intérêt</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="FavoriteEventTypes" class="form-label"></label>
+                    <input asp-for="FavoriteEventTypes" class="form-control" placeholder="Ex: Hackathons, conférences tech, meetups..." />
+                    <span asp-validation-for="FavoriteEventTypes" class="text-danger"></span>
+                    <small class="form-text text-muted">Séparez par des virgules</small>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Hobbies" class="form-label"></label>
+                    <textarea asp-for="Hobbies" class="form-control" rows="3" placeholder="Ex: Football, cybersécurité, musique, gaming..."></textarea>
+                    <span asp-validation-for="Hobbies" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">📚 Apprentissage</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="LearningNow" class="form-label"></label>
+                    <input asp-for="LearningNow" class="form-control" placeholder="Ex: ASP.NET Core, React, Machine Learning..." />
+                    <span asp-validation-for="LearningNow" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Links Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">🔗 Liens sociaux</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="GithubUrl" class="form-label"></label>
+                    <input asp-for="GithubUrl" type="url" class="form-control" placeholder="https://github.com/votre-username" />
+                    <span asp-validation-for="GithubUrl" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="LinkedinUrl" class="form-label"></label>
+                    <input asp-for="LinkedinUrl" type="url" class="form-control" placeholder="https://linkedin.com/in/votre-username" />
+                    <span asp-validation-for="LinkedinUrl" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="PortfolioUrl" class="form-label"></label>
+                    <input asp-for="PortfolioUrl" type="url" class="form-control" placeholder="https://votre-portfolio.com" />
+                    <span asp-validation-for="PortfolioUrl" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">🖼️ Photo de profil</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="ProfileImage" class="form-label"></label>
+                    <input asp-for="ProfileImage" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp" />
+                    <span asp-validation-for="ProfileImage" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                💾 Enregistrer les modifications
+            </button>
+            <a asp-controller="Home" asp-action="Profile" class="btn btn-secondary btn-lg">
+                ❌ Annuler
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

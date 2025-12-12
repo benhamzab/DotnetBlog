@@ -1,19 +1,21 @@
 using System.Security.Claims;
 using BLOGAURA.Models.Auth;
-using BLOGAURA.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BLOGAURA.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly IAuthService _authService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public AuthController(IAuthService authService)
+        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
         {
-            _authService = authService;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
         [HttpGet]
@@ -36,15 +38,27 @@ namespace BLOGAURA.Controllers
                 return View(model);
             }
 
-            var user = await _authService.CreateUserAsync(model);
-            if (user == null)
+            var user = new ApplicationUser
             {
-                ModelState.AddModelError(string.Empty, "Email or username is already in use.");
-                return View(model);
+                UserName = model.Username,
+                Email = model.Email,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Registration successful. Please log in.";
+                return RedirectToAction("Login");
             }
 
-            TempData["SuccessMessage"] = "Registration successful. Please log in.";
-            return RedirectToAction("Login");
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
         }
 
         [HttpGet]
@@ -67,36 +81,35 @@ namespace BLOGAURA.Controllers
                 return View(model);
             }
 
-            var user = await _authService.ValidateUserAsync(model);
+            // Find user by email
+            var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
                 ModelState.AddModelError(string.Empty, "Invalid credentials.");
                 return View(model);
             }
 
-            var claims = new List<Claim>
+            // Sign in with username (Identity requires username, not email)
+            var result = await _signInManager.PasswordSignInAsync(
+                user.UserName, 
+                model.Password, 
+                isPersistent: true, 
+                lockoutOnFailure: false);
+
+            if (result.Succeeded)
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email)
-            };
+                return RedirectToAction("Index", "Home");
+            }
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                principal,
-                new AuthenticationProperties { IsPersistent = true });
-
-            return RedirectToAction("Index", "Home");
+            ModelState.AddModelError(string.Empty, "Invalid credentials.");
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await _signInManager.SignOutAsync();
             return RedirectToAction("Login");
         }
     }

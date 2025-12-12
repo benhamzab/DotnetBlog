@@ -1,4 +1,4 @@
-﻿@model IEnumerable<BLOGAURA.Models.Posts.Post>
+@model IEnumerable<BLOGAURA.Models.Posts.Post>
 @{
     ViewData["Title"] = "Home";
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
@@ -47,6 +47,7 @@ else
     var userName = User.Identity?.Name ?? "Utilisateur";
     var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
     var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
+    var profilePictureUrl = User.FindFirst("ProfilePictureUrl")?.Value;
 
     <div class="home-dashboard">
         <aside class="home-sidebar">
@@ -54,7 +55,14 @@ else
                 <div class="home-profile-header">
                     <div class="home-profile-banner"></div>
                     <div class="home-profile-avatar-wrapper">
-                        <div class="home-profile-avatar-circle">@initial</div>
+                        @if (!string.IsNullOrEmpty(profilePictureUrl))
+                        {
+                            <img src="@Url.Content(profilePictureUrl)" alt="@userName" class="home-profile-avatar-circle" style="object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="home-profile-avatar-circle">@initial</div>
+                        }
                     </div>
                 </div>
                 <div class="home-profile-body">

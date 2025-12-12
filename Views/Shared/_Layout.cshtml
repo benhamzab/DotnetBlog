@@ -28,9 +28,22 @@
                         </li>
                     </ul>
 
+
                     <ul class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated ?? false)
                         {
+                            <!-- User Search Bar -->
+                            <li class="nav-item d-flex align-items-center me-2">
+                                <form asp-controller="Users" asp-action="Search" method="get" class="d-flex">
+                                    <input class="form-control form-control-sm" 
+                                           type="search" 
+                                           name="query" 
+                                           placeholder="🔍 Rechercher des utilisateurs..." 
+                                           aria-label="Search users"
+                                           style="min-width: 200px;" />
+                                </form>
+                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Home" asp-action="Profile">Profile</a>
                             </li>

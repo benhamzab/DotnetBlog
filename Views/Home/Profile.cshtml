@@ -1,57 +1,500 @@
 @model BLOGAURA.Models.Posts.ProfileViewModel
 @{
-    ViewData["Title"] = "Mon profil";
-    var userName = Model.User.Username;
-    var email = Model.User.Email;
+    ViewData["Title"] = "Profil";
+    var userName = Model.User.UserName ?? "Utilisateur";
+    var email = Model.User.Email ?? "";
     var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
+    var joinDate = Model.User.CreatedAt.ToString("MMMM yyyy");
+    var postsCount = Model.Posts?.Count() ?? 0;
 }
 
-<div class="home-dashboard">
-    <aside class="home-sidebar">
-        <div class="home-profile-card">
-            <div class="home-profile-header">
-                <div class="home-profile-banner"></div>
-                <div class="home-profile-avatar-wrapper">
-                    <div class="home-profile-avatar-circle">@initial</div>
-                </div>
+<style>
+    /* Profile Page Styles */
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    /* Hero Header */
+    .profile-hero {
+        position: relative;
+        height: 280px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 0 0 24px 24px;
+        overflow: hidden;
+    }
+
+    .profile-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .profile-edit-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .profile-edit-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Avatar Section */
+    .profile-avatar-section {
+        position: relative;
+        margin-top: -80px;
+        padding: 0 40px;
+        margin-bottom: 30px;
+    }
+
+    .profile-avatar-wrapper {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        margin: 0 auto;
+    }
+
+    .profile-avatar {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 6px solid white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+        object-fit: cover;
+    }
+
+    .profile-avatar:hover {
+        transform: scale(1.05);
+    }
+
+    .profile-info {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .profile-name {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 5px;
+    }
+
+    .profile-username {
+        font-size: 18px;
+        color: #718096;
+        margin-bottom: 15px;
+    }
+
+    .profile-bio {
+        font-size: 16px;
+        color: #4a5568;
+        max-width: 600px;
+        margin: 0 auto 25px;
+        line-height: 1.6;
+    }
+
+    /* Stats */
+    .profile-stats {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+        margin-bottom: 40px;
+    }
+
+    .profile-stat {
+        background: white;
+        padding: 15px 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        min-width: 120px;
+        transition: all 0.3s ease;
+    }
+
+    .profile-stat:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 5px;
+    }
+
+    .profile-stat-label {
+        font-size: 14px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Tabs */
+    .profile-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 0 40px;
+    }
+
+    .profile-tab {
+        padding: 15px 30px;
+        background: none;
+        border: none;
+        color: #718096;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .profile-tab:hover {
+        color: #667eea;
+    }
+
+    .profile-tab.active {
+        color: #667eea;
+    }
+
+    .profile-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 3px 3px 0 0;
+    }
+
+    /* Tab Content */
+    .profile-tab-content {
+        display: none;
+        padding: 0 40px 40px;
+    }
+
+    .profile-tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Posts Grid */
+    .profile-posts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    /* About Section */
+    .profile-about {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .profile-about-section {
+        background: white;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .profile-about-section h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .profile-tech-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .profile-tech-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+
+    .profile-links {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .profile-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: #f7fafc;
+        border-radius: 10px;
+        color: #4a5568;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .profile-link:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    /* Settings Section */
+    .profile-settings {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .profile-settings-card {
+        background: white;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .profile-settings-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 15px;
+    }
+
+    .profile-settings-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
+    }
+
+    .profile-settings-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .profile-hero {
+            height: 200px;
+            border-radius: 0;
+        }
+
+        .profile-avatar-section {
+            padding: 0 20px;
+            margin-top: -60px;
+        }
+
+        .profile-avatar-wrapper,
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+        }
+
+        .profile-avatar {
+            font-size: 48px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+        }
+
+        .profile-stats {
+            gap: 15px;
+        }
+
+        .profile-stat {
+            min-width: 100px;
+            padding: 12px 20px;
+        }
+
+        .profile-tabs {
+            padding: 0 20px;
+            overflow-x: auto;
+        }
+
+        .profile-tab {
+            padding: 12px 20px;
+            font-size: 14px;
+        }
+
+        .profile-tab-content {
+            padding: 0 20px 40px;
+        }
+
+        .profile-posts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="profile-container">
+    <!-- Hero Header -->
+    <div class="profile-hero">
+        <a asp-controller="Profile" asp-action="Edit" class="profile-edit-btn">
+            ✏️ Modifier le profil
+        </a>
+    </div>
+
+    <!-- Avatar & Info Section -->
+    <div class="profile-avatar-section">
+        <div class="profile-avatar-wrapper">
+            @if (!string.IsNullOrEmpty(Model.User.ProfilePictureUrl))
+            {
+                <img src="@Url.Content(Model.User.ProfilePictureUrl)" alt="@userName" class="profile-avatar" />
+            }
+            else
+            {
+                <div class="profile-avatar">@initial</div>
+            }
+        </div>
+
+        <div class="profile-info">
+            <h1 class="profile-name">@userName</h1>
+            <p class="profile-username">@@@userName</p>
+            <p class="profile-bio">
+                Développeur passionné | Membre de la communauté BlogAura
+            </p>
+        </div>
+
+        <!-- Stats -->
+        <div class="profile-stats">
+            <div class="profile-stat">
+                <div class="profile-stat-value">@postsCount</div>
+                <div class="profile-stat-label">Posts</div>
             </div>
-            <div class="home-profile-body">
-                <h3 class="home-profile-name">@userName</h3>
-                <p class="home-profile-role">Membre BlogAura</p>
-                <p class="home-profile-email">@email</p>
+            <div class="profile-stat">
+                <div class="profile-stat-value">@Model.FollowersCount</div>
+                <div class="profile-stat-label">Abonnés</div>
             </div>
-            <div class="home-profile-stats">
-                <div class="home-profile-stat">
-                    <div class="home-profile-stat-label">Posts</div>
-                    <div class="home-profile-stat-value">0</div>
-                </div>
-                <div class="home-profile-stat">
-                    <div class="home-profile-stat-label">Abonnements</div>
-                    <div class="home-profile-stat-value">0</div>
-                </div>
-                <div class="home-profile-stat">
-                    <div class="home-profile-stat-label">Abonnés</div>
-                    <div class="home-profile-stat-value">0</div>
-                </div>
+            <div class="profile-stat">
+                <div class="profile-stat-value">@Model.FollowingCount</div>
+                <div class="profile-stat-label">Abonnements</div>
             </div>
-            <div class="home-profile-footer">
-                <a asp-controller="Home" asp-action="Index" class="home-btn home-btn-outline home-profile-btn">Retour au fil</a>
+            <div class="profile-stat">
+                <div class="profile-stat-value">@joinDate</div>
+                <div class="profile-stat-label">Membre depuis</div>
             </div>
         </div>
-    </aside>
 
-    <section class="home-main">
+        <!-- Follow/Unfollow Button -->
+        @if (ViewBag.IsOwnProfile == false)
+        {
+            <div class="text-center mt-3">
+                @if (Model.IsFollowing)
+                {
+                    <form asp-controller="Users" asp-action="Unfollow" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@Model.User.Id" />
+                        <button type="submit" class="btn btn-outline-secondary" style="border-radius: 10px; padding: 10px 30px; font-weight: 600;">
+                            ✓ Abonné
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-controller="Users" asp-action="Follow" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@Model.User.Id" />
+                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 10px 30px; font-weight: 600;">
+                            + Suivre
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Tabs -->
+    <div class="profile-tabs">
+        <button class="profile-tab active" onclick="showTab('posts')">
+            📝 Posts
+        </button>
+        <button class="profile-tab" onclick="showTab('about')">
+            👤 À propos
+        </button>
+        @if (ViewBag.IsOwnProfile == true)
+        {
+            <button class="profile-tab" onclick="showTab('settings')">
+                ⚙️ Paramètres
+            </button>
+        }
+    </div>
+
+    <!-- Tab Content: Posts -->
+    <div id="posts-tab" class="profile-tab-content active">
         @if (TempData["PostSuccess"] != null)
         {
             <div class="alert alert-success mb-3">@TempData["PostSuccess"]</div>
         }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success mb-3">@TempData["Success"]</div>
+        }
 
-        <div class="home-feed-header">
-            <h2>Mes posts</h2>
-            <a asp-controller="Posts" asp-action="CreatePost" class="home-btn home-btn-primary">Créer un post</a>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Mes publications</h2>
+            <a asp-controller="Posts" asp-action="CreatePost" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600;">
+                ➕ Nouveau post
+            </a>
         </div>
 
-        <div class="home-feed-grid">
+        <div class="profile-posts-grid">
             @if (Model.Posts != null && Model.Posts.Any())
             {
                 foreach (var post in Model.Posts)
@@ -61,8 +504,201 @@
             }
             else
             {
-                <p class="text-muted">Vous n'avez pas encore publié de post.</p>
+                <div class="text-center py-5">
+                    <p class="text-muted" style="font-size: 18px;">Vous n'avez pas encore publié de post.</p>
+                    <a asp-controller="Posts" asp-action="CreatePost" class="btn btn-primary mt-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 12px 24px; font-weight: 600;">
+                        Créer votre premier post
+                    </a>
+                </div>
             }
         </div>
-    </section>
+    </div>
+
+    <!-- Tab Content: About -->
+    <div id="about-tab" class="profile-tab-content">
+        <div class="profile-about">
+            <!-- About Me Section -->
+            <div class="profile-about-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>📝 À propos</h3>
+                    @if (ViewBag.IsOwnProfile == true)
+                    {
+                        <a asp-controller="Profile" asp-action="Edit" class="btn btn-sm btn-outline-primary">
+                            ✏️ Modifier le profil
+                        </a>
+                    }
+                </div>
+
+                <p style="color: #4a5568; line-height: 1.6; white-space: pre-wrap;">
+                    @(!string.IsNullOrWhiteSpace(Model.User.About) ? Model.User.About : "Aucune description pour le moment.")
+                </p>
+            </div>
+
+            <!-- Student Journey Section -->
+            <div class="profile-about-section">
+                <h3>🎓 Parcours étudiant</h3>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="margin-bottom: 8px;"><strong>Université :</strong> @(Model.User.University ?? "Non renseignée")</li>
+                    <li style="margin-bottom: 8px;"><strong>Niveau :</strong> @(Model.User.Grade ?? "Non renseigné")</li>
+                    <li style="margin-bottom: 8px;"><strong>Ville :</strong> @(Model.User.City ?? "Non renseignée")</li>
+                    <li style="margin-bottom: 8px;"><strong>Âge :</strong> @(Model.User.Age.HasValue ? Model.User.Age.Value.ToString() + " ans" : "Non renseigné")</li>
+                </ul>
+            </div>
+
+            <!-- Events & Interests Section -->
+            <div class="profile-about-section">
+                <h3>🎟️ Événements & Centres d'intérêt</h3>
+                <p style="color: #4a5568; margin-bottom: 10px;">
+                    <strong>Types d'événements préférés :</strong><br />
+                    @(Model.User.FavoriteEventTypes ?? "Hackathons, conférences, meetups tech...")
+                </p>
+                <p style="color: #4a5568;">
+                    <strong>Hobbies :</strong><br />
+                    @(Model.User.Hobbies ?? "Football, cybersécurité, musique...")
+                </p>
+            </div>
+
+            <!-- Campus & Cities Section (Event-oriented) -->
+            @if (!string.IsNullOrWhiteSpace(Model.User.City) || !string.IsNullOrWhiteSpace(Model.User.University))
+            {
+                <div class="profile-about-section">
+                    <h3>📍 Campus & Localisation</h3>
+                    <p style="color: #4a5568;">
+                        @if (!string.IsNullOrWhiteSpace(Model.User.University))
+                        {
+                            <text>Étudie à <strong>@Model.User.University</strong></text>
+                            if (!string.IsNullOrWhiteSpace(Model.User.City))
+                            {
+                                <text> à <strong>@Model.User.City</strong></text>
+                            }
+                            <text>.</text>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(Model.User.City))
+                        {
+                            <text>Basé(e) à <strong>@Model.User.City</strong>.</text>
+                        }
+                    </p>
+                    @if (!string.IsNullOrWhiteSpace(Model.User.FavoriteEventTypes))
+                    {
+                        <p style="color: #667eea; font-weight: 600;">
+                            🔥 Cherche des événements : @Model.User.FavoriteEventTypes
+                        </p>
+                    }
+                </div>
+            }
+
+            <!-- Currently Learning Section -->
+            <div class="profile-about-section">
+                <h3>📚 Actuellement en apprentissage</h3>
+                <p style="color: #4a5568; line-height: 1.6;">
+                    @(Model.User.LearningNow ?? "ASP.NET Core Identity, Design Patterns, Clean Architecture")
+                </p>
+            </div>
+
+            <!-- Social Links Section -->
+            <div class="profile-about-section">
+                <h3>🔗 Liens</h3>
+                <div class="profile-links">
+                    @if (!string.IsNullOrWhiteSpace(Model.User.GithubUrl))
+                    {
+                        <a href="@Model.User.GithubUrl" target="_blank" class="profile-link">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            GitHub
+                        </a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.User.LinkedinUrl))
+                    {
+                        <a href="@Model.User.LinkedinUrl" target="_blank" class="profile-link">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                            LinkedIn
+                        </a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.User.PortfolioUrl))
+                    {
+                        <a href="@Model.User.PortfolioUrl" target="_blank" class="profile-link">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0 3c-3.866 0-7 3.134-7 7s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 2c2.761 0 5 2.239 5 5s-2.239 5-5 5-5-2.239-5-5 2.239-5 5-5z"/></svg>
+                            Portfolio
+                        </a>
+                    }
+                    @if (string.IsNullOrWhiteSpace(Model.User.GithubUrl) && string.IsNullOrWhiteSpace(Model.User.LinkedinUrl) && string.IsNullOrWhiteSpace(Model.User.PortfolioUrl))
+                    {
+                        <p class="text-muted">Aucun lien ajouté</p>
+                    }
+                </div>
+            </div>
+
+            <div class="profile-about-section">
+                <h3>📧 Contact</h3>
+                <p style="color: #4a5568;">
+                    <strong>Email:</strong> @email
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Settings -->
+    @if (ViewBag.IsOwnProfile == true)
+    {
+        <div id="settings-tab" class="profile-tab-content">
+            <div class="profile-settings">
+                <div class="profile-settings-card">
+                    <h3>Paramètres du profil</h3>
+                    <a asp-controller="Profile" asp-action="Edit" class="profile-settings-btn">
+                        Modifier le profil
+                    </a>
+                    <a asp-controller="Home" asp-action="Index" class="profile-settings-btn" style="background: #e2e8f0; color: #4a5568;">
+                        Retour au fil d'actualité
+                    </a>
+                </div>
+
+                <div class="profile-settings-card">
+                    <h3>Compte</h3>
+                    <p style="color: #718096; margin-bottom: 15px;">
+                        Gérez vos paramètres de compte et vos préférences.
+                    </p>
+                    <button class="profile-settings-btn" style="background: #f56565;">
+                        Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+
+<script>
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.profile-tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.profile-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        document.getElementById(tabName + '-tab').classList.add('active');
+
+        // Add active class to clicked button
+        event.target.classList.add('active');
+    }
+
+    function toggleAboutEdit() {
+        const displayDiv = document.getElementById('about-display');
+        const editDiv = document.getElementById('about-edit');
+        const editBtn = document.getElementById('edit-about-btn');
+
+        if (displayDiv.style.display === 'none') {
+            // Switch back to display mode
+            displayDiv.style.display = 'block';
+            editDiv.style.display = 'none';
+            editBtn.innerHTML = '✏️ Modifier';
+        } else {
+            // Switch to edit mode
+            displayDiv.style.display = 'none';
+            editDiv.style.display = 'block';
+            editBtn.innerHTML = '❌ Annuler';
+        }
+    }
+</script>

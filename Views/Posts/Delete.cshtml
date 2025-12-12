@@ -1,0 +1,42 @@
+@model BLOGAURA.Models.Posts.Post
+@{
+    ViewData["Title"] = "Supprimer le post";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-body p-4">
+                <h2 class="mb-3 text-danger">Supprimer le post</h2>
+                
+                <div class="alert alert-warning">
+                    <strong>Attention !</strong> Cette action est irréversible. Êtes-vous sûr de vouloir supprimer ce post ?
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">@Model.Title</h5>
+                        <p class="card-text">@Model.Content</p>
+                        @if (!string.IsNullOrEmpty(Model.ImagePath))
+                        {
+                            <img src="@Model.ImagePath" alt="Image du post" class="img-thumbnail" style="max-width: 200px;" />
+                        }
+                        <p class="text-muted mt-2">
+                            <small>Publié le @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy à HH:mm")</small>
+                        </p>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">Oui, supprimer</button>
+                        <a asp-controller="Home" asp-action="Profile" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
