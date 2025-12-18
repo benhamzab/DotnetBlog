@@ -1,0 +1,33 @@
+@model BLOGAURA.Models.Auth.EditProfileSettingsViewModel
+<form asp-action="Settings" asp-controller="Profile" method="post" enctype="multipart/form-data" class="profile-settings-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ProfileUserId" value="@Model.ProfileUserId" />
+    <div class="mb-3">
+        <label class="form-label">Photo de profil</label>
+        <div class="d-flex align-items-center gap-3">
+            <img src="@Url.Content(Model.CurrentPhotoUrl ?? "/images/default-avatar.png")" alt="Photo de profil" class="rounded-circle" style="width:80px;height:80px;object-fit:cover;" />
+            <input asp-for="NewProfilePhoto" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+            <span asp-validation-for="NewProfilePhoto" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="DisplayName" class="form-label">Nom affiché</label>
+        <input asp-for="DisplayName" class="form-control" />
+        <span asp-validation-for="DisplayName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="UserName" class="form-label">Nom d'utilisateur</label>
+        <input asp-for="UserName" class="form-control" />
+        <span asp-validation-for="UserName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">Email</label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+</form>

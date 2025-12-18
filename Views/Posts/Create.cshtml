@@ -38,6 +38,20 @@
                         <span asp-validation-for="ImageFiles" class="text-danger"></span>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Élément du calendrier de contenu (optionnel)</label>
+                        <select asp-for="ContentCalendarItemId" class="form-select">
+                            <option value="">-- Aucun --</option>
+                            @if (ViewBag.PlannedItems is IEnumerable<SelectListItem> items)
+                            {
+                                foreach (var it in items)
+                                {
+                                    <option value="@it.Value">@it.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
                     <button type="submit" class="btn btn-primary w-100">Publier le post</button>
                 </form>
             </div>

@@ -1,0 +1,56 @@
+@model BLOGAURA.Models.Content.ContentCalendarItem
+@{
+    ViewData["Title"] = "Modifier";
+}
+
+<div class="container mt-4" style="max-width:800px;">
+    <h2 class="mb-3">Modifier l'élément</h2>
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="PlannedPublishDate" class="form-label"></label>
+            <input asp-for="PlannedPublishDate" type="date" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Status" class="form-label"></label>
+            <select asp-for="Status" class="form-select">
+                <option>Planned</option>
+                <option>InProgress</option>
+                <option>Published</option>
+                <option>Canceled</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label"></label>
+            <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="EventId" class="form-label">Événement lié (post)</label>
+            <select asp-for="EventId" class="form-select">
+                <option value="">-- Aucun --</option>
+                @if (ViewBag.EventPosts is IEnumerable<SelectListItem> posts)
+                {
+                    foreach (var p in posts)
+                    {
+                        var selected = Model.EventId.HasValue && p.Value == Model.EventId.Value.ToString();
+                        <option value="@p.Value" selected="@(selected ? "selected" : null)">@p.Text</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PostId" class="form-label">Post lié (optionnel)</label>
+            <input asp-for="PostId" class="form-control" />
+            <small class="form-text text-muted">Renseignez l'ID du post publié si applicable.</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
+    </form>
+</div>

@@ -419,11 +419,19 @@
                 <div class="profile-stat-label">Posts</div>
             </div>
             <div class="profile-stat">
-                <div class="profile-stat-value">@Model.FollowersCount</div>
+                <div class="profile-stat-value">
+                    <a asp-controller="Users" asp-action="Followers" asp-route-userId="@Model.User.Id" style="text-decoration:none;color:inherit;">
+                        @Model.FollowersCount
+                    </a>
+                </div>
                 <div class="profile-stat-label">Abonnés</div>
             </div>
             <div class="profile-stat">
-                <div class="profile-stat-value">@Model.FollowingCount</div>
+                <div class="profile-stat-value">
+                    <a asp-controller="Users" asp-action="Following" asp-route-userId="@Model.User.Id" style="text-decoration:none;color:inherit;">
+                        @Model.FollowingCount
+                    </a>
+                </div>
                 <div class="profile-stat-label">Abonnements</div>
             </div>
             <div class="profile-stat">
@@ -460,63 +468,286 @@
         }
     </div>
 
+    @{
+        var nextContents = ViewBag.NextScheduledContents as IEnumerable<BLOGAURA.Models.Content.ContentCalendarItem>;
+    }
+    @if (nextContents != null && nextContents.Any())
+    {
+        <div class="card mb-4 mx-4">
+            <div class="card-header">🗓️ Prochains contenus planifiés (éditeur)</div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    @foreach (var it in nextContents)
+                    {
+                        <li class="mb-2">
+                            <strong>@it.PlannedPublishDate.ToString("yyyy-MM-dd")</strong> — @it.ContentType — @it.Title
+                            @if (it.PostId.HasValue)
+                            {
+                                <a asp-controller="Posts" asp-action="Details" asp-route-id="@it.PostId" class="ms-2">Voir</a>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
     <!-- Tabs -->
-    <div class="profile-tabs">
-        <button class="profile-tab active" onclick="showTab('posts')">
-            📝 Posts
-        </button>
-        <button class="profile-tab" onclick="showTab('about')">
-            👤 À propos
-        </button>
+    <ul class="nav nav-tabs border-0 profile-tabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-posts">Posts</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-replies">Replies</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reposts">Reposts</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reels">Reels</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-likes">Likes</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-about">À propos</button>
+        </li>
         @if (ViewBag.IsOwnProfile == true)
         {
-            <button class="profile-tab" onclick="showTab('settings')">
-                ⚙️ Paramètres
-            </button>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-settings">Paramètres</button>
+            </li>
         }
-    </div>
+    </ul>
 
-    <!-- Tab Content: Posts -->
-    <div id="posts-tab" class="profile-tab-content active">
-        @if (TempData["PostSuccess"] != null)
-        {
-            <div class="alert alert-success mb-3">@TempData["PostSuccess"]</div>
-        }
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success mb-3">@TempData["Success"]</div>
-        }
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Mes publications</h2>
-            <a asp-controller="Posts" asp-action="CreatePost" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600;">
-                ➕ Nouveau post
-            </a>
+    <div class="tab-content mt-3">
+        <div class="tab-pane fade show active" id="tab-posts">
+            <div class="profile-posts-grid">
+                @if (Model.Posts != null && Model.Posts.Any())
+                {
+                    {
+                        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isAdmin = User.IsInRole("Admin");
+                        foreach (var post in Model.Posts)
+                        {
+                            var canEdit = isAdmin || (!string.IsNullOrEmpty(currentUserIdStr) && int.TryParse(currentUserIdStr, out var uid) && uid == post.UserId);
+                            var card = new BLOGAURA.Models.Posts.PostCardViewModel {
+                                Id = post.Id,
+                                AuthorId = post.UserId.ToString(),
+                                AuthorName = post.User?.DisplayName ?? post.User?.UserName ?? "Utilisateur",
+                                AuthorPhotoUrl = post.User?.ProfilePictureUrl ?? string.Empty,
+                                CreatedAtFormatted = post.CreatedAt.ToLocalTime().ToString("g"),
+                                CanEditOrDelete = canEdit,
+                                CanDelete = canEdit,
+                                Post = post
+                            };
+                            @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", card)
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <p class="text-muted" style="font-size: 18px;">Aucun post pour le moment.</p>
+                    </div>
+                }
+            </div>
         </div>
 
-        <div class="profile-posts-grid">
-            @if (Model.Posts != null && Model.Posts.Any())
-            {
-                foreach (var post in Model.Posts)
+        <div class="tab-pane fade" id="tab-replies">
+            <div class="profile-posts-grid">
+                @if (Model.Replies != null && Model.Replies.Any())
                 {
-                    @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", post)
+                    {
+                        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isAdmin = User.IsInRole("Admin");
+                        foreach (var post in Model.Replies)
+                        {
+                            var canEdit = isAdmin || (!string.IsNullOrEmpty(currentUserIdStr) && int.TryParse(currentUserIdStr, out var uid) && uid == post.UserId);
+                            var card = new BLOGAURA.Models.Posts.PostCardViewModel {
+                                Id = post.Id,
+                                AuthorId = post.UserId.ToString(),
+                                AuthorName = post.User?.DisplayName ?? post.User?.UserName ?? "Utilisateur",
+                                AuthorPhotoUrl = post.User?.ProfilePictureUrl ?? string.Empty,
+                                CreatedAtFormatted = post.CreatedAt.ToLocalTime().ToString("g"),
+                                CanEditOrDelete = canEdit,
+                                CanDelete = canEdit,
+                                Post = post
+                            };
+                            ViewData["ContextLabel"] = "Réponse";
+                            @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", card)
+                            ViewData["ContextLabel"] = null;
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <p class="text-muted" style="font-size: 18px;">Aucune réponse pour le moment.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-reposts">
+            <div class="profile-posts-grid">
+                @if (Model.Reposts != null && Model.Reposts.Any())
+                {
+                    {
+                        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isAdmin = User.IsInRole("Admin");
+                        foreach (var post in Model.Reposts)
+                        {
+                            var canEdit = isAdmin || (!string.IsNullOrEmpty(currentUserIdStr) && int.TryParse(currentUserIdStr, out var uid) && uid == post.UserId);
+                            var card = new BLOGAURA.Models.Posts.PostCardViewModel {
+                                Id = post.Id,
+                                AuthorId = post.UserId.ToString(),
+                                AuthorName = post.User?.DisplayName ?? post.User?.UserName ?? "Utilisateur",
+                                AuthorPhotoUrl = post.User?.ProfilePictureUrl ?? string.Empty,
+                                CreatedAtFormatted = post.CreatedAt.ToLocalTime().ToString("g"),
+                                CanEditOrDelete = canEdit,
+                                CanDelete = canEdit,
+                                Post = post
+                            };
+                            ViewData["ContextLabel"] = "Repost";
+                            @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", card)
+                            ViewData["ContextLabel"] = null;
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <p class="text-muted" style="font-size: 18px;">Aucun repost pour le moment.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-reels">
+            @if (Model.Reels != null && Model.Reels.Any())
+            {
+                var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var currentUserIdInt = 0;
+                if (!string.IsNullOrEmpty(currentUserIdStr)) int.TryParse(currentUserIdStr, out currentUserIdInt);
+                foreach (var r in Model.Reels)
+                {
+                    var vm = new BLOGAURA.Models.Reels.ReelViewModel
+                    {
+                        Id = r.Id,
+                        UserId = r.UserId.ToString(),
+                        UserName = r.User?.DisplayName ?? r.User?.UserName ?? "Utilisateur",
+                        UserPhotoUrl = r.User?.ProfilePictureUrl ?? string.Empty,
+                        Caption = r.Caption,
+                        VideoPath = r.VideoPath,
+                        CreatedAtFormatted = r.CreatedAt.ToLocalTime().ToString("g"),
+                        LikesCount = r.Likes?.Count ?? 0,
+                        CommentsCount = r.Comments?.Count ?? 0,
+                        IsLikedByCurrentUser = r.Likes?.Any(l => l.UserId == currentUserIdInt) ?? false,
+                        EventPostId = r.EventPostId,
+                        EventTitle = r.EventPost?.Title ?? string.Empty,
+                        Category = r.Category
+                    };
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <a asp-controller="Home" asp-action="Profile" asp-route-userId="@vm.UserId">
+                                    @if (!string.IsNullOrEmpty(vm.UserPhotoUrl))
+                                    {
+                                        <img src="@Url.Content(vm.UserPhotoUrl)" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">@vm.UserName?.FirstOrDefault()</div>
+                                    }
+                                </a>
+                                <div>
+                                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@vm.UserId" class="fw-bold text-decoration-none text-dark">@vm.UserName</a>
+                                    <div class="small text-muted">@vm.CreatedAtFormatted</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <video src="@Url.Content(vm.VideoPath)" controls playsinline style="width:100%;max-height:70vh;object-fit:cover;border-radius:8px;"></video>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(vm.Caption))
+                            {
+                                <div class="mb-2">@vm.Caption</div>
+                            }
+                            @if (vm.EventPostId.HasValue)
+                            {
+                                <div class="small"><a asp-controller="Posts" asp-action="Details" asp-route-id="@vm.EventPostId">Voir l'événement: @vm.EventTitle</a></div>
+                            }
+
+                            <div class="d-flex align-items-center gap-3 mt-2">
+                                <form asp-controller="Reels" asp-action="ToggleLike" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@vm.Id" />
+                                    <button type="submit" class="btn btn-link p-0 @(vm.IsLikedByCurrentUser ? "text-danger" : "")">❤ @vm.LikesCount</button>
+                                </form>
+                                <a href="#profile-reel-@vm.Id-comments" class="btn btn-link p-0">💬 @vm.CommentsCount</a>
+                            </div>
+
+                            <div id="profile-reel-@vm.Id-comments" class="mt-3">
+                                <form asp-controller="Reels" asp-action="AddComment" method="post" class="mb-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ReelId" value="@vm.Id" />
+                                    <div class="input-group">
+                                        <input type="text" name="Content" class="form-control" placeholder="Votre commentaire..." />
+                                        <button type="submit" class="btn btn-outline-primary">Publier</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 }
             }
             else
             {
                 <div class="text-center py-5">
-                    <p class="text-muted" style="font-size: 18px;">Vous n'avez pas encore publié de post.</p>
-                    <a asp-controller="Posts" asp-action="CreatePost" class="btn btn-primary mt-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; padding: 12px 24px; font-weight: 600;">
-                        Créer votre premier post
-                    </a>
+                    <p class="text-muted" style="font-size: 18px;">Aucun reel pour le moment.</p>
                 </div>
             }
         </div>
-    </div>
 
-    <!-- Tab Content: About -->
-    <div id="about-tab" class="profile-tab-content">
-        <div class="profile-about">
+        <div class="tab-pane fade" id="tab-likes">
+            <div class="profile-posts-grid">
+                @if (Model.Likes != null && Model.Likes.Any())
+                {
+                    {
+                        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isAdmin = User.IsInRole("Admin");
+                        foreach (var post in Model.Likes)
+                        {
+                            var canEdit = isAdmin || (!string.IsNullOrEmpty(currentUserIdStr) && int.TryParse(currentUserIdStr, out var uid) && uid == post.UserId);
+                            var card = new BLOGAURA.Models.Posts.PostCardViewModel {
+                                Id = post.Id,
+                                AuthorId = post.UserId.ToString(),
+                                AuthorName = post.User?.DisplayName ?? post.User?.UserName ?? "Utilisateur",
+                                AuthorPhotoUrl = post.User?.ProfilePictureUrl ?? string.Empty,
+                                CreatedAtFormatted = post.CreatedAt.ToLocalTime().ToString("g"),
+                                CanEditOrDelete = canEdit,
+                                CanDelete = canEdit,
+                                Post = post
+                            };
+                            ViewData["ContextLabel"] = "Aimé";
+                            @await Html.PartialAsync("~/Views/Posts/_PostCard.cshtml", card)
+                            ViewData["ContextLabel"] = null;
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <p class="text-muted" style="font-size: 18px;">Aucun like pour le moment.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-about">
+            <div class="profile-about">
             <!-- About Me Section -->
             <div class="profile-about-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -634,56 +865,31 @@
                 </p>
             </div>
         </div>
-    </div>
 
-    <!-- Tab Content: Settings -->
-    @if (ViewBag.IsOwnProfile == true)
-    {
-        <div id="settings-tab" class="profile-tab-content">
-            <div class="profile-settings">
-                <div class="profile-settings-card">
-                    <h3>Paramètres du profil</h3>
-                    <a asp-controller="Profile" asp-action="Edit" class="profile-settings-btn">
-                        Modifier le profil
-                    </a>
-                    <a asp-controller="Home" asp-action="Index" class="profile-settings-btn" style="background: #e2e8f0; color: #4a5568;">
-                        Retour au fil d'actualité
-                    </a>
-                </div>
-
-                <div class="profile-settings-card">
-                    <h3>Compte</h3>
-                    <p style="color: #718096; margin-bottom: 15px;">
-                        Gérez vos paramètres de compte et vos préférences.
-                    </p>
-                    <button class="profile-settings-btn" style="background: #f56565;">
-                        Déconnexion
-                    </button>
+        @if (ViewBag.IsOwnProfile == true)
+        {
+            <div class="tab-pane fade" id="tab-settings">
+                <div class="profile-settings">
+                    <div class="profile-settings-card">
+                        <h3>Paramètres du profil</h3>
+                        @{
+                            var settingsModel = ViewBag.SettingsModel as BLOGAURA.Models.Auth.EditProfileSettingsViewModel;
+                        }
+                        @if (settingsModel != null)
+                        {
+                            @await Html.PartialAsync("~/Views/Profile/_SettingsForm.cshtml", settingsModel)
+                        }
+                        else
+                        {
+                            <p class="text-muted">Chargement des paramètres...</p>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
 
-<script>
-    function showTab(tabName) {
-        // Hide all tabs
-        document.querySelectorAll('.profile-tab-content').forEach(tab => {
-            tab.classList.remove('active');
-        });
-
-        // Remove active class from all tab buttons
-        document.querySelectorAll('.profile-tab').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        // Show selected tab
-        document.getElementById(tabName + '-tab').classList.add('active');
-
-        // Add active class to clicked button
-        event.target.classList.add('active');
-    }
-
+    <script>
     function toggleAboutEdit() {
         const displayDiv = document.getElementById('about-display');
         const editDiv = document.getElementById('about-edit');
@@ -701,4 +907,4 @@
             editBtn.innerHTML = '❌ Annuler';
         }
     }
-</script>
+    </script>

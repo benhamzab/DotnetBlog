@@ -1,40 +1,76 @@
-@model BLOGAURA.Models.Posts.Post
+@model BLOGAURA.Models.Posts.PostCardViewModel
 
 @{
-    var content = Model.Content ?? string.Empty;
+    var content = Model.Post.Content ?? string.Empty;
     var isLong = content.Length > 220;
     var preview = isLong ? content.Substring(0, 220) + "..." : content;
 }
 
-<div class="home-feed-card mb-3">
-    <div class="home-feed-card-header">
-        <div class="home-avatar-circle">
-            @if (!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
-            {
-                <img src="@Url.Content(Model.User.ProfilePictureUrl)" alt="@Model.User.UserName" class="home-avatar-img" />
-            }
-            else
-            {
-                @((Model.User?.UserName?.FirstOrDefault() ?? 'U'))
-            }
-        </div>
-        <div>
-            <div class="home-feed-username">@(Model.User?.UserName ?? "Utilisateur")</div>
-            <div class="home-feed-meta">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
-        </div>
-    </div>
+<div class="card post-card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between">
+            <div class="d-flex align-items-center">
+                <a asp-controller="Home" asp-action="Profile" asp-route-userId="@Model.AuthorId">
+                    @if (!string.IsNullOrEmpty(Model.AuthorPhotoUrl))
+                    {
+                        <img src="@Url.Content(Model.AuthorPhotoUrl)" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">
+                            @Model.AuthorName?.FirstOrDefault()
+                        </div>
+                    }
+                </a>
 
-    <div class="home-feed-content">
+                <div>
+                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@Model.AuthorId" class="fw-bold text-decoration-none text-dark">
+                        @Model.AuthorName
+                    </a>
+                    <div class="small text-muted">
+                        <a asp-controller="Posts" asp-action="Details" asp-route-id="@Model.Id" class="text-muted text-decoration-none">
+                            @Model.CreatedAtFormatted
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.CanEditOrDelete)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id">Modifier</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+
+        <div class="home-feed-content">
         @preview
         @if (isLong)
         {
             <span class="home-feed-more"> Voir plus…</span>
         }
     </div>
-
-    @if (Model.Images != null && Model.Images.Any())
+        @{
+        var replyContent = ViewData["ReplyContent"] as string;
+    }
+    @if (!string.IsNullOrWhiteSpace(replyContent))
     {
-        foreach (var img in Model.Images)
+        <div class="mt-2" style="background:#f8f9fa;border-radius:8px;padding:10px;">
+            <div style="font-size:12px;color:#6c757d;">Réponse:</div>
+            <div style="font-size:14px;color:#343a40;">@replyContent</div>
+        </div>
+    }
+
+    @if (Model.Post.Images != null && Model.Post.Images.Any())
+    {
+        foreach (var img in Model.Post.Images)
         {
             if (!string.IsNullOrEmpty(img.ImagePath))
             {
@@ -44,43 +80,57 @@
             }
         }
     }
-    else if (!string.IsNullOrEmpty(Model.ImagePath))
+    else if (!string.IsNullOrEmpty(Model.Post.ImagePath))
     {
         <div class="mb-2">
-            <img src="@Url.Content(Model.ImagePath)" alt="Image du post" class="home-feed-media" />
+            <img src="@Url.Content(Model.Post.ImagePath)" alt="Image du post" class="home-feed-media" />
         </div>
     }
 
-    @if (!string.IsNullOrEmpty(Model.VideoPath))
-    {
-        <div class="mb-2">
-            <video src="@Url.Content(Model.VideoPath)" controls class="home-feed-media"></video>
-        </div>
-    }
+        @if (!string.IsNullOrEmpty(Model.Post.VideoPath))
+        {
+            <div class="mb-2">
+                <video src="@Url.Content(Model.Post.VideoPath)" controls class="home-feed-media"></video>
+            </div>
+        }
 
-    <div class="home-feed-footer">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <span>❤</span>
-                <span>💬</span>
+        <div class="home-feed-footer">
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <div class="d-flex align-items-center gap-3 mt-2">
+                <form asp-controller="Posts" asp-action="ToggleLike" method="post" class="like-form d-inline" data-post-id="@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    @{ 
+                        var currentUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; 
+                        var isLiked = false; 
+                        if (!string.IsNullOrEmpty(currentUserIdStr) && int.TryParse(currentUserIdStr, out var currentUserIdInt)) 
+                        { 
+                            isLiked = Model.Post.Likes?.Any(l => l.UserId == currentUserIdInt) ?? false; 
+                        } 
+                        var likesCount = Model.Post.Likes?.Count ?? 0; 
+                    }
+                    <button type="submit" class="btn btn-like @(isLiked ? "liked" : "")" aria-label="Aimer">
+                        <span class="like-icon">♥</span>
+                        <span class="like-count">@likesCount</span>
+                    </button>
+                </form>
+                <a asp-controller="Posts" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link p-0">💬 @(Model.Post.Comments?.Count ?? 0)</a>
+                <form asp-controller="Posts" asp-action="Repost" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-sm btn-link p-0 text-decoration-none">Reposter</button>
+                </form>
+
+                @if (Model.CanDelete)
+                {
+                    <form asp-controller="Posts" asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Supprimer ce post ?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-link text-danger p-0 text-decoration-none">Supprimer</button>
+                    </form>
+                }
             </div>
             
-            @{
-                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var isOwner = currentUserId != null && int.TryParse(currentUserId, out var userId) && userId == Model.UserId;
-            }
-            
-            @if (isOwner)
-            {
-                <div class="btn-group btn-group-sm">
-                    <a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm" title="Modifier">
-                        ✏️ Modifier
-                    </a>
-                    <a asp-controller="Posts" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger btn-sm" title="Supprimer">
-                        🗑️ Supprimer
-                    </a>
-                </div>
-            }
-        </div>
+            </div>
+            </div>
     </div>
 </div>

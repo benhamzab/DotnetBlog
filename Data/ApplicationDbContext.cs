@@ -17,6 +17,14 @@ namespace BLOGAURA.Data
         public DbSet<Post> Posts { get; set; } = default!;
         public DbSet<PostImage> PostImages { get; set; } = default!;
         public DbSet<UserFollow> UserFollows { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Posts.PostLike> PostLikes { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Posts.Comment> Comments { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Posts.Repost> Reposts { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Content.ContentCalendarItem> ContentCalendar { get; set; } = default!;
+
+        public DbSet<BLOGAURA.Models.Reels.Reel> Reels { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Reels.ReelLike> ReelLikes { get; set; } = default!;
+        public DbSet<BLOGAURA.Models.Reels.ReelComment> ReelComments { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,7 +75,107 @@ namespace BLOGAURA.Data
                     .HasForeignKey(pi => pi.PostId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<BLOGAURA.Models.Posts.PostLike>(entity =>
+            {
+                entity.HasIndex(l => new { l.PostId, l.UserId }).IsUnique();
+                entity.HasOne(l => l.Post)
+                    .WithMany(p => p.Likes)
+                    .HasForeignKey(l => l.PostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(l => l.User)
+                    .WithMany()
+                    .HasForeignKey(l => l.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<BLOGAURA.Models.Posts.Comment>(entity =>
+            {
+                entity.Property(c => c.Content).HasMaxLength(1000);
+                entity.HasOne(c => c.Post)
+                    .WithMany(p => p.Comments)
+                    .HasForeignKey(c => c.PostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(c => c.User)
+                    .WithMany()
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<BLOGAURA.Models.Posts.Repost>(entity =>
+            {
+                entity.HasIndex(r => new { r.OriginalPostId, r.UserId }).IsUnique();
+                entity.HasOne(r => r.OriginalPost)
+                    .WithMany(p => p.Reposts)
+                    .HasForeignKey(r => r.OriginalPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(r => r.User)
+                    .WithMany()
+                    .HasForeignKey(r => r.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<BLOGAURA.Models.Content.ContentCalendarItem>(entity =>
+            {
+                entity.Property(c => c.Title).HasMaxLength(200).IsRequired();
+                entity.Property(c => c.ContentType).HasMaxLength(100).IsRequired();
+                entity.Property(c => c.TargetAudience).HasMaxLength(200);
+                entity.Property(c => c.Status).HasMaxLength(50).IsRequired();
+                entity.Property(c => c.Notes).HasMaxLength(1000);
+
+                entity.HasIndex(c => c.PlannedPublishDate);
+                entity.HasIndex(c => c.Status);
+                entity.HasIndex(c => c.ContentType);
+                entity.HasIndex(c => c.EditorUserId);
+
+                entity.HasOne<BLOGAURA.Models.Posts.Post>()
+                    .WithMany()
+                    .HasForeignKey(c => c.PostId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Reels configurations
+            modelBuilder.Entity<BLOGAURA.Models.Reels.Reel>(entity =>
+            {
+                entity.HasOne(r => r.User)
+                    .WithMany()
+                    .HasForeignKey(r => r.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasOne(r => r.EventPost)
+                    .WithMany()
+                    .HasForeignKey(r => r.EventPostId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<BLOGAURA.Models.Reels.ReelLike>(entity =>
+            {
+                entity.HasOne(rl => rl.Reel)
+                    .WithMany(r => r.Likes)
+                    .HasForeignKey(rl => rl.ReelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(rl => rl.User)
+                    .WithMany()
+                    .HasForeignKey(rl => rl.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<BLOGAURA.Models.Reels.ReelComment>(entity =>
+            {
+                entity.HasOne(rc => rc.Reel)
+                    .WithMany(r => r.Comments)
+                    .HasForeignKey(rc => rc.ReelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(rc => rc.User)
+                    .WithMany()
+                    .HasForeignKey(rc => rc.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // Ignore legacy BlogContext join entity in this context to prevent confusion
+            modelBuilder.Ignore<BLOGAURA.Models.PostTag>();
         }
     }
 }
-

@@ -1,0 +1,23 @@
+@model BLOGAURA.Models.Content.ContentCalendarItem
+@{
+    ViewData["Title"] = "Supprimer";
+}
+
+<div class="container mt-4" style="max-width:800px;">
+    <h2 class="mb-3">Supprimer l'élément</h2>
+    <div class="alert alert-warning">Cette action est irréversible.</div>
+    <dl class="row">
+        <dt class="col-sm-3">Titre</dt>
+        <dd class="col-sm-9">@Model.Title</dd>
+        <dt class="col-sm-3">Date prévue</dt>
+        <dd class="col-sm-9">@Model.PlannedPublishDate.ToString("yyyy-MM-dd")</dd>
+        <dt class="col-sm-3">Statut</dt>
+        <dd class="col-sm-9">@Model.Status</dd>
+    </dl>
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">Supprimer</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
+    </form>
+</div>

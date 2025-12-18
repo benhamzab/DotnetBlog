@@ -89,6 +89,12 @@ namespace BLOGAURA.Controllers
                 return View(model);
             }
 
+            if (string.IsNullOrWhiteSpace(user.UserName))
+            {
+                ModelState.AddModelError(string.Empty, "Le compte est invalide (nom d'utilisateur manquant).");
+                return View(model);
+            }
+
             // Sign in with username (Identity requires username, not email)
             var result = await _signInManager.PasswordSignInAsync(
                 user.UserName, 

@@ -30,5 +30,7 @@ namespace BLOGAURA.Models.Posts
         [Display(Name = "Vidéo (MP4)")]
         [DataType(DataType.Upload)]
         public IFormFile? VideoFile { get; set; }
+
+        public int? ContentCalendarItemId { get; set; }
     }
 }

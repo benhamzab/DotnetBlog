@@ -12,11 +12,16 @@ namespace BLOGAURA.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IFollowService _followService;
+        private readonly BLOGAURA.Data.ApplicationDbContext _context;
 
-        public UsersController(UserManager<ApplicationUser> userManager, IFollowService followService)
+        public UsersController(
+            UserManager<ApplicationUser> userManager,
+            IFollowService followService,
+            BLOGAURA.Data.ApplicationDbContext context)
         {
             _userManager = userManager;
             _followService = followService;
+            _context = context;
         }
 
         [HttpGet]
@@ -107,6 +112,70 @@ namespace BLOGAURA.Controllers
             }
 
             return RedirectToAction("Profile", "Home", new { userId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Followers(int userId)
+        {
+            var profile = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (profile == null)
+            {
+                return NotFound();
+            }
+
+            var users = await _context.UserFollows
+                .Include(f => f.Follower)
+                .Where(f => f.FollowedId == userId)
+                .Select(f => new BLOGAURA.Models.Social.FollowUserItem
+                {
+                    UserId = f.Follower.Id,
+                    DisplayName = f.Follower.DisplayName ?? f.Follower.UserName ?? "Utilisateur",
+                    Username = f.Follower.UserName ?? string.Empty,
+                    PhotoUrl = f.Follower.PhotoUrl
+                })
+                .ToListAsync();
+
+            var vm = new BLOGAURA.Models.Social.FollowListViewModel
+            {
+                ProfileUserId = profile.Id.ToString(),
+                ProfileDisplayName = profile.DisplayName ?? profile.UserName ?? "Utilisateur",
+                IsFollowers = true,
+                Users = users
+            };
+
+            return View("FollowList", vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Following(int userId)
+        {
+            var profile = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (profile == null)
+            {
+                return NotFound();
+            }
+
+            var users = await _context.UserFollows
+                .Include(f => f.Followed)
+                .Where(f => f.FollowerId == userId)
+                .Select(f => new BLOGAURA.Models.Social.FollowUserItem
+                {
+                    UserId = f.Followed.Id,
+                    DisplayName = f.Followed.DisplayName ?? f.Followed.UserName ?? "Utilisateur",
+                    Username = f.Followed.UserName ?? string.Empty,
+                    PhotoUrl = f.Followed.PhotoUrl
+                })
+                .ToListAsync();
+
+            var vm = new BLOGAURA.Models.Social.FollowListViewModel
+            {
+                ProfileUserId = profile.Id.ToString(),
+                ProfileDisplayName = profile.DisplayName ?? profile.UserName ?? "Utilisateur",
+                IsFollowers = false,
+                Users = users
+            };
+
+            return View("FollowList", vm);
         }
     }
 }

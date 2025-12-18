@@ -27,5 +27,9 @@ namespace BLOGAURA.Models.Posts
         public ApplicationUser? User { get; set; }
 
         public ICollection<PostImage> Images { get; set; } = new List<PostImage>();
+
+        public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<Repost> Reposts { get; set; } = new List<Repost>();
     }
 }

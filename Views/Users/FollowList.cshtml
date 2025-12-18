@@ -1,0 +1,36 @@
+@model BLOGAURA.Models.Social.FollowListViewModel
+
+<div class="container mt-4" style="max-width:720px;">
+    <h3 class="mb-3">@(Model.IsFollowers ? "Abonnés de " : "Abonnements de ") @Model.ProfileDisplayName</h3>
+
+    @if (Model.Users != null && Model.Users.Any())
+    {
+        foreach (var u in Model.Users)
+        {
+            <div class="d-flex align-items-center border-bottom py-2">
+                <a asp-controller="Home" asp-action="Profile" asp-route-userId="@u.UserId" class="me-2">
+                    @if (!string.IsNullOrEmpty(u.PhotoUrl))
+                    {
+                        <img src="@Url.Content(u.PhotoUrl)" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                            @(string.IsNullOrWhiteSpace(u.DisplayName) ? "U" : u.DisplayName.Trim()[0].ToString().ToUpperInvariant())
+                        </div>
+                    }
+                </a>
+                <div>
+                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@u.UserId" class="fw-bold">
+                        @u.DisplayName
+                    </a>
+                    <div class="text-muted">@u.Username</div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info">Aucun résultat.</div>
+    }
+</div>

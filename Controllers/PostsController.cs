@@ -5,6 +5,7 @@ using BLOGAURA.Models.Posts;
 using BLOGAURA.Services.Posts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLOGAURA.Controllers
 {
@@ -12,10 +13,12 @@ namespace BLOGAURA.Controllers
     public class PostsController : Controller
     {
         private readonly IPostService _postService;
+        private readonly BLOGAURA.Data.ApplicationDbContext _context;
 
-        public PostsController(IPostService postService)
+        public PostsController(IPostService postService, BLOGAURA.Data.ApplicationDbContext context)
         {
             _postService = postService;
+            _context = context;
         }
 
         [HttpGet]
@@ -85,6 +88,31 @@ namespace BLOGAURA.Controllers
         [HttpGet]
         public IActionResult Create()
         {
+            // Preload planned calendar items for this editor
+            var items = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+            {
+                try
+                {
+                    var now = DateTime.UtcNow.Date;
+                    var cutoff = now.AddDays(42);
+                    var planned = _context.ContentCalendar
+                        .Where(c => c.EditorUserId == userId && (c.Status == "Planned" || c.Status == "InProgress") && c.PlannedPublishDate.Date <= cutoff)
+                        .OrderBy(c => c.PlannedPublishDate)
+                        .Take(50)
+                        .Select(c => new { c.Id, c.Title, c.PlannedPublishDate, c.ContentType })
+                        .ToList();
+                    items = planned.Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                    {
+                        Value = c.Id.ToString(),
+                        Text = $"{c.PlannedPublishDate:yyyy-MM-dd} • {c.ContentType} • {c.Title}"
+                    }).ToList();
+                }
+                catch { }
+            }
+
+            ViewBag.PlannedItems = items;
             return View(new CreatePostModel());
         }
 
@@ -107,8 +135,21 @@ namespace BLOGAURA.Controllers
 
             try
             {
-                await _postService.CreatePostAsync(userId, model);
-                return RedirectToAction("Index", "Home");
+                var post = await _postService.CreatePostAsync(userId, model);
+
+                // Link post to selected content calendar item
+                if (model.ContentCalendarItemId.HasValue)
+                {
+                    var item = await _context.ContentCalendar.FirstOrDefaultAsync(c => c.Id == model.ContentCalendarItemId.Value && c.EditorUserId == userId);
+                    if (item != null)
+                    {
+                        item.PostId = post.Id;
+                        item.Status = "Published";
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                return RedirectToAction("Details", new { id = post.Id });
             }
             catch (Exception ex)
             {
@@ -153,6 +194,169 @@ namespace BLOGAURA.Controllers
             };
 
             return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            var post = await _postService.GetPostByIdAsync(id);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new BLOGAURA.Models.Posts.PostDetailsViewModel
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Content = post.Content,
+                CreatedAtFormatted = post.CreatedAt.ToLocalTime().ToString("g"),
+                AuthorId = post.UserId.ToString(),
+                AuthorName = post.User?.DisplayName ?? post.User?.UserName ?? "Utilisateur",
+                AuthorPhotoUrl = post.User?.PhotoUrl ?? post.User?.ProfilePictureUrl ?? string.Empty,
+                LikeCount = post.Likes?.Count ?? 0,
+                ImagePaths = (post.Images ?? new List<BLOGAURA.Models.Posts.PostImage>())
+                    .Select(i => i.ImagePath)
+                    .Where(p => !string.IsNullOrEmpty(p))
+                    .ToList(),
+                Comments = (post.Comments ?? new List<BLOGAURA.Models.Posts.Comment>())
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Select(c => new BLOGAURA.Models.Posts.PostDetailsViewModel.CommentItem
+                    {
+                        AuthorId = c.UserId.ToString(),
+                        AuthorName = c.User?.DisplayName ?? c.User?.UserName ?? "Utilisateur",
+                        AuthorPhotoUrl = c.User?.PhotoUrl ?? c.User?.ProfilePictureUrl ?? string.Empty,
+                        Content = c.Content,
+                        CreatedAtFormatted = c.CreatedAt.ToLocalTime().ToString("g")
+                    }).ToList()
+            };
+
+            try
+            {
+                var relatedPlanned = await _context.ContentCalendar
+                    .Where(c => c.EventId == post.Id)
+                    .OrderBy(c => c.PlannedPublishDate)
+                    .ToListAsync();
+                ViewBag.RelatedPlanned = relatedPlanned;
+                var relatedReels = await _context.Reels
+                    .Include(r => r.User)
+                    .Where(r => r.EventPostId == post.Id)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Take(5)
+                    .ToListAsync();
+                ViewBag.RelatedReels = relatedReels;
+            }
+            catch { }
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleLike(int postId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var exists = await _context.Posts.AnyAsync(p => p.Id == postId);
+            if (!exists)
+            {
+                return NotFound();
+            }
+
+            var existing = await _context.PostLikes.SingleOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+            if (existing != null)
+            {
+                _context.PostLikes.Remove(existing);
+            }
+            else
+            {
+                _context.PostLikes.Add(new BLOGAURA.Models.Posts.PostLike
+                {
+                    PostId = postId,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            var referer = Request.Headers["Referer"].ToString();
+            if (!string.IsNullOrEmpty(referer))
+            {
+                return Redirect(referer);
+            }
+            return RedirectToAction("Index", "Home");
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(BLOGAURA.Models.Posts.CreateCommentViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return RedirectToAction("Details", new { id = model.PostId });
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == model.PostId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var comment = new BLOGAURA.Models.Posts.Comment
+            {
+                PostId = model.PostId,
+                UserId = userId,
+                Content = model.Content.Trim(),
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Details", new { id = model.PostId });
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Repost(int postId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var existing = await _context.Reposts.SingleOrDefaultAsync(r => r.OriginalPostId == postId && r.UserId == userId);
+            if (existing == null)
+            {
+                _context.Reposts.Add(new BLOGAURA.Models.Posts.Repost
+                {
+                    OriginalPostId = postId,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Index", "Home");
         }
 
         // POST: Posts/Edit/5

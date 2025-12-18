@@ -1,0 +1,87 @@
+@model IEnumerable<BLOGAURA.Models.Content.ContentCalendarItem>
+@{
+    ViewData["Title"] = "Content Calendar";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Calendrier de contenu (4–6 semaines)</h2>
+        <div>
+            <a asp-action="Create" class="btn btn-primary">Ajouter</a>
+            <a asp-action="Monthly" class="btn btn-outline-secondary">Vue mensuelle</a>
+        </div>
+    </div>
+
+    <form method="get" class="row g-3 mb-3">
+        <div class="col-md-3">
+            <label class="form-label">Type de contenu</label>
+            <select name="contentType" class="form-select">
+                <option value="">Tous</option>
+                <option>Event announcement</option>
+                <option>Last‑minute reminder</option>
+                <option>Recap with photos</option>
+                <option>Top 5 tips from event</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Statut</label>
+            <select name="status" class="form-select">
+                <option value="">Tous</option>
+                <option>Planned</option>
+                <option>InProgress</option>
+                <option>Published</option>
+                <option>Canceled</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Audience cible</label>
+            <select name="audience" class="form-select">
+                <option value="">Tous</option>
+                <option>First years</option>
+                <option>CS students</option>
+                <option>All engineering students</option>
+                <option>Clubs & associations</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary w-100">Filtrer</button>
+        </div>
+    </form>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date prévue</th>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Audience</th>
+                <th>Statut</th>
+                <th>Liens</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                var overdue = !item.PostId.HasValue && item.PlannedPublishDate.Date < DateTime.UtcNow.Date;
+                <tr class="@(overdue ? "table-warning" : "")">
+                    <td>@item.PlannedPublishDate.ToString("yyyy-MM-dd")</td>
+                    <td>@item.Title</td>
+                    <td>@item.ContentType</td>
+                    <td>@item.TargetAudience</td>
+                    <td>@item.Status</td>
+                    <td>
+                        @if (item.PostId.HasValue)
+                        {
+                            <a asp-controller="Posts" asp-action="Details" asp-route-id="@item.PostId" class="btn btn-sm btn-outline-success">View post</a>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Modifier</a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Supprimer</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

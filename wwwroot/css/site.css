@@ -400,3 +400,29 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Like button styles */
+.btn-like {
+  border: none;
+  background: transparent;
+  color: #666;
+  padding: 0;
+}
+
+.btn-like .like-icon {
+  color: #aaa;
+  transition: color 0.2s ease;
+}
+
+.btn-like .like-count {
+  color: #666;
+  margin-left: 4px;
+}
+
+.btn-like.liked .like-icon {
+  color: #e0245e;
+}
+
+.btn-like.liked .like-count {
+  color: #e0245e;
+}

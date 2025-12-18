@@ -1,0 +1,168 @@
+@model BLOGAURA.Models.Posts.PostDetailsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+    
+}
+
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+                <a asp-controller="Home" asp-action="Profile" asp-route-userId="@Model.AuthorId">
+                    @if (!string.IsNullOrEmpty(Model.AuthorPhotoUrl))
+                    {
+                        <img src="@Url.Content(Model.AuthorPhotoUrl)" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">@Model.AuthorName?.FirstOrDefault()</div>
+                    }
+                </a>
+                <div>
+                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@Model.AuthorId" class="fw-bold text-decoration-none text-dark">@Model.AuthorName</a>
+                    <div class="small text-muted">@Model.CreatedAtFormatted</div>
+                </div>
+            </div>
+
+            <h2 class="mb-3">@Model.Title</h2>
+            <p class="mb-3">@Model.Content</p>
+
+            @if (Model.ImagePaths != null && Model.ImagePaths.Any())
+            {
+                <div class="mb-3">
+                    @foreach (var imgPath in Model.ImagePaths)
+                    {
+                        <img src="@Url.Content(imgPath)" class="img-fluid rounded mb-2" alt="Image du post" />
+                    }
+                </div>
+            }
+
+            <div class="d-flex align-items-center gap-3 mt-3">
+                <form asp-controller="Posts" asp-action="ToggleLike" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-link p-0">❤ @Model.LikeCount</button>
+                </form>
+
+                <a href="#comments" class="btn btn-link p-0">💬 @Model.Comments.Count</a>
+
+                <form asp-controller="Posts" asp-action="Repost" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-link p-0">↻ Reposter</button>
+                </form>
+            </div>
+            @{
+                var related = ViewBag.RelatedPlanned as IEnumerable<BLOGAURA.Models.Content.ContentCalendarItem>;
+            }
+            @if (related != null && related.Any())
+            {
+                <div class="mt-4">
+                    <h5>📅 Contenu prévu pour cet événement</h5>
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var it in related)
+                        {
+                            var overdue = !it.PostId.HasValue && it.PlannedPublishDate.Date < DateTime.UtcNow.Date;
+                            <li class="mb-2 @(overdue ? "text-warning" : "")">
+                                <strong>@it.PlannedPublishDate.ToString("yyyy-MM-dd")</strong> — @it.ContentType — @it.Title
+                                @if (it.PostId.HasValue)
+                                {
+                                    <a asp-controller="Posts" asp-action="Details" asp-route-id="@it.PostId" class="ms-2">Voir le post</a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+            @{
+                var relatedReels = ViewBag.RelatedReels as List<BLOGAURA.Models.Reels.Reel>;
+            }
+            @if (relatedReels != null && relatedReels.Any())
+            {
+                <div class="mt-4">
+                    <h5>🎥 Reels liés à cet événement</h5>
+                    @foreach (var r in relatedReels)
+                    {
+                        var uname = r.User?.DisplayName ?? r.User?.UserName ?? "Utilisateur";
+                        var uphoto = r.User?.ProfilePictureUrl ?? string.Empty;
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <a asp-controller="Home" asp-action="Profile" asp-route-userId="@r.UserId">
+                                        @if (!string.IsNullOrEmpty(uphoto))
+                                        {
+                                            <img src="@Url.Content(uphoto)" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;">@uname?.FirstOrDefault()</div>
+                                        }
+                                    </a>
+                                    <div>
+                                        <a asp-controller="Home" asp-action="Profile" asp-route-userId="@r.UserId" class="fw-bold text-decoration-none text-dark">@uname</a>
+                                        <div class="small text-muted">@r.CreatedAt.ToLocalTime().ToString("g")</div>
+                                    </div>
+                                </div>
+                                <video src="@Url.Content(r.VideoPath)" controls playsinline style="width:100%;max-height:60vh;object-fit:cover;border-radius:8px;"></video>
+                                @if (!string.IsNullOrWhiteSpace(r.Caption))
+                                {
+                                    <div class="mt-2">@r.Caption</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div id="comments" class="card">
+        <div class="card-header">Commentaires (@Model.Comments.Count)</div>
+        <div class="card-body">
+            @if (isAuthenticated)
+            {
+                <form asp-controller="Posts" asp-action="AddComment" method="post" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PostId" value="@Model.Id" />
+                    <div class="mb-2">
+                        <textarea name="Content" class="form-control" rows="3" placeholder="Votre commentaire..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Publier</button>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted">Connectez-vous pour commenter.</p>
+            }
+
+            @if (Model.Comments.Any())
+            {
+                foreach (var c in Model.Comments)
+                {
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-1">
+                            <a asp-controller="Home" asp-action="Profile" asp-route-userId="@c.AuthorId" class="d-flex align-items-center text-decoration-none text-dark me-2">
+                                @if (!string.IsNullOrEmpty(c.AuthorPhotoUrl))
+                                {
+                                    <img src="@Url.Content(c.AuthorPhotoUrl)" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;">@c.AuthorName?.FirstOrDefault()</div>
+                                }
+                                <span class="fw-bold">@c.AuthorName</span>
+                            </a>
+                            <span class="text-muted">@c.CreatedAtFormatted</span>
+                        </div>
+                        <div>@c.Content</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted">Aucun commentaire pour le moment.</p>
+            }
+        </div>
+    </div>
+</div>

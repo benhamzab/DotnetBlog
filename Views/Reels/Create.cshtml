@@ -1,0 +1,54 @@
+@model BLOGAURA.Models.Reels.CreateReelViewModel
+@{
+    ViewData["Title"] = "Créer un Reel";
+    var posts = ViewBag.Posts as List<BLOGAURA.Models.Posts.Post>;
+}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">🎬 Event Reels for Students</div>
+        <div class="card-body">
+            <form asp-controller="Reels" asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label asp-for="VideoFile" class="form-label">Vidéo (verticale, courte)</label>
+                    <input asp-for="VideoFile" type="file" class="form-control" accept="video/*" />
+                    <span asp-validation-for="VideoFile" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Caption" class="form-label">Caption</label>
+                    <input asp-for="Caption" class="form-control" placeholder="Quick tour of the hackathon at EMSI" />
+                    <span asp-validation-for="Caption" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="EventPostId" class="form-label">Post d'événement lié (optionnel)</label>
+                    <select asp-for="EventPostId" class="form-select">
+                        <option value="">— Aucun —</option>
+                        @if (posts != null)
+                        {
+                            foreach (var p in posts)
+                            {
+                                <option value="@p.Id">@p.Title</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Category" class="form-label">Catégorie d'événement</label>
+                    <input asp-for="Category" class="form-control" placeholder="Tech, Sport, Culture..." />
+                    <span asp-validation-for="Category" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Publier le Reel</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

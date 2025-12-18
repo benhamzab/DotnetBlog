@@ -19,12 +19,12 @@ namespace BLOGAURA.Services.Posts
         {
             if (string.IsNullOrWhiteSpace(model.Title))
             {
-                throw new ArgumentException("Title is required", nameof(model.Title));
+                throw new ArgumentException("Title is required", nameof(model));
             }
 
             if (string.IsNullOrWhiteSpace(model.Content))
             {
-                throw new ArgumentException("Content is required", nameof(model.Content));
+                throw new ArgumentException("Content is required", nameof(model));
             }
 
             var post = new Post
@@ -41,7 +41,7 @@ namespace BLOGAURA.Services.Posts
             // Save multiple images under wwwroot/images
             try
             {
-                if (model.ImageFiles != null && model.ImageFiles.Any())
+                if (model.ImageFiles != null && model.ImageFiles.Count > 0)
                 {
                     if (string.IsNullOrEmpty(_environment.WebRootPath))
                     {
@@ -90,6 +90,9 @@ namespace BLOGAURA.Services.Posts
         {
             return _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Images)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(count)
                 .ToListAsync();
@@ -100,6 +103,8 @@ namespace BLOGAURA.Services.Posts
             return await _context.Posts
                 .Include(p => p.User)
                 .Include(p => p.Images)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -110,6 +115,8 @@ namespace BLOGAURA.Services.Posts
             return await _context.Posts
                 .Include(p => p.User)
                 .Include(p => p.Images)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments).ThenInclude(c => c.User)
                 .FirstOrDefaultAsync(p => p.Id == postId);
         }
 
@@ -176,7 +183,7 @@ namespace BLOGAURA.Services.Posts
             await _context.SaveChangesAsync();
         }
 
-        private void DeleteImageFile(string imagePath, IWebHostEnvironment environment)
+        private static void DeleteImageFile(string imagePath, IWebHostEnvironment environment)
         {
             try
             {

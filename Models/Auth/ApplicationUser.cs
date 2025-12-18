@@ -53,6 +53,9 @@ namespace BLOGAURA.Models.Auth
         
         [StringLength(200)]
         public string? PortfolioUrl { get; set; }
+
+        [StringLength(100)]
+        public string? DisplayName { get; set; }
         
         // Follow relationships
         public ICollection<Social.UserFollow> Following { get; set; } = new List<Social.UserFollow>();
