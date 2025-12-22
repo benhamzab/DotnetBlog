@@ -16,6 +16,9 @@ namespace BLOGAURA.Models.Auth
             get => ProfilePictureUrl; 
             set => ProfilePictureUrl = value; 
         }
+
+        // Cover Image Path for profile header
+        public string? CoverImagePath { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         

@@ -122,9 +122,22 @@
 
         <div class="card mb-4">
             <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">🖼️ Photo de profil</h5>
+                <h5 class="mb-0">🖼️ Images de profil</h5>
             </div>
             <div class="card-body">
+                <div class="mb-4">
+                    <label class="form-label">Photo de couverture</label>
+                    @if (!string.IsNullOrEmpty(Model.CurrentCoverUrl))
+                    {
+                        <div class="mb-2" style="height: 120px; width: 100%; border-radius: 8px; overflow: hidden; background-color: #f0f0f0;">
+                            <img src="@Model.CurrentCoverUrl" style="width: 100%; height: 100%; object-fit: cover;" />
+                        </div>
+                    }
+                    <input asp-for="NewCoverImage" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp" />
+                    <span asp-validation-for="NewCoverImage" class="text-danger"></span>
+                    <small class="text-muted">Format recommandé : 1200x300px (Max 5Mo)</small>
+                </div>
+
                 <div class="mb-3">
                     <label asp-for="ProfileImage" class="form-label"></label>
                     <input asp-for="ProfileImage" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp" />

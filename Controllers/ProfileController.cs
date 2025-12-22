@@ -109,6 +109,50 @@ namespace BLOGAURA.Controllers
                     user.ProfilePictureUrl = $"/uploads/profiles/{name}";
                 }
 
+                if (model.NewCoverImage != null && model.NewCoverImage.Length > 0)
+                {
+                    // Validate size (5MB)
+                    if (model.NewCoverImage.Length > 5 * 1024 * 1024)
+                    {
+                        ModelState.AddModelError(string.Empty, "La photo de couverture ne doit pas dépasser 5 Mo.");
+                        return View(model);
+                    }
+
+                    var root = _environment.WebRootPath;
+                    if (string.IsNullOrEmpty(root))
+                    {
+                        throw new InvalidOperationException("WebRootPath is not configured.");
+                    }
+
+                    var uploads = Path.Combine(root, "uploads", "covers");
+                    Directory.CreateDirectory(uploads);
+
+                    if (!string.IsNullOrEmpty(user.CoverImagePath))
+                    {
+                        var oldPath = Path.Combine(root, user.CoverImagePath.TrimStart('/'));
+                        if (System.IO.File.Exists(oldPath))
+                        {
+                            try { System.IO.File.Delete(oldPath); } catch { }
+                        }
+                    }
+
+                    var ext = Path.GetExtension(model.NewCoverImage.FileName).ToLowerInvariant();
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                    if (!allowedExtensions.Contains(ext))
+                    {
+                        ModelState.AddModelError(string.Empty, "Format de fichier non supporté pour la couverture.");
+                        return View(model);
+                    }
+
+                    var name = $"{Guid.NewGuid()}{ext}";
+                    var path = Path.Combine(uploads, name);
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        await model.NewCoverImage.CopyToAsync(stream);
+                    }
+                    user.CoverImagePath = $"/uploads/covers/{name}";
+                }
+
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
                 {
@@ -128,127 +172,6 @@ namespace BLOGAURA.Controllers
                 ModelState.AddModelError(string.Empty, "Une erreur est survenue lors de la mise à jour du profil.");
                 return View(model);
             }
-        }
-
-        [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> Settings(int? userId)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
-            if (userId.HasValue && userId.Value != user.Id)
-            {
-                return Forbid();
-            }
-
-            var vm = new BLOGAURA.Models.Auth.EditProfileSettingsViewModel
-            {
-                DisplayName = user.DisplayName,
-                Email = user.Email,
-                UserName = user.UserName,
-                CurrentPhotoUrl = user.ProfilePictureUrl,
-                ProfileUserId = user.Id
-            };
-
-            return View(vm);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Settings(BLOGAURA.Models.Auth.EditProfileSettingsViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
-            if (model.ProfileUserId.HasValue && model.ProfileUserId.Value != user.Id)
-            {
-                return Forbid();
-            }
-
-            user.DisplayName = model.DisplayName?.Trim();
-
-            if (!string.IsNullOrWhiteSpace(model.Email) && !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
-            {
-                var setEmailResult = await _userManager.SetEmailAsync(user, model.Email);
-                if (!setEmailResult.Succeeded)
-                {
-                    foreach (var error in setEmailResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                    return View(model);
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.UserName) && !string.Equals(user.UserName, model.UserName, StringComparison.OrdinalIgnoreCase))
-            {
-                var setUserNameResult = await _userManager.SetUserNameAsync(user, model.UserName);
-                if (!setUserNameResult.Succeeded)
-                {
-                    foreach (var error in setUserNameResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-                    return View(model);
-                }
-            }
-
-            if (model.NewProfilePhoto != null && model.NewProfilePhoto.Length > 0)
-            {
-                var root = _environment.WebRootPath;
-                if (string.IsNullOrEmpty(root))
-                {
-                    throw new InvalidOperationException("WebRootPath is not configured.");
-                }
-
-                var uploads = Path.Combine(root, "uploads", "profiles");
-                Directory.CreateDirectory(uploads);
-
-                if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
-                {
-                    var oldPath = Path.Combine(root, user.ProfilePictureUrl.TrimStart('/'));
-                    if (System.IO.File.Exists(oldPath))
-                    {
-                        try { System.IO.File.Delete(oldPath); } catch { }
-                    }
-                }
-
-                var ext = Path.GetExtension(model.NewProfilePhoto.FileName).ToLowerInvariant();
-                var name = $"{Guid.NewGuid()}{ext}";
-                var path = Path.Combine(uploads, name);
-                using (var stream = new FileStream(path, FileMode.Create))
-                {
-                    await model.NewProfilePhoto.CopyToAsync(stream);
-                }
-                user.ProfilePictureUrl = $"/uploads/profiles/{name}";
-            }
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-                return View(model);
-            }
-
-            await _signInManager.RefreshSignInAsync(user);
-
-            return RedirectToAction("Profile", "Home", new { userId = user.Id });
         }
     }
 }

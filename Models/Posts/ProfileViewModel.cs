@@ -12,6 +12,7 @@ namespace BLOGAURA.Models.Posts
         public string DisplayName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string? PhotoUrl { get; set; }
+        public string? CoverImageUrl { get; set; }
         public string? Bio { get; set; }
 
         public int PostsCount { get; set; }

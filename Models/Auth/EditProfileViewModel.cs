@@ -54,5 +54,11 @@ namespace BLOGAURA.Models.Auth
         [DataType(DataType.Upload)]
         [Display(Name = "Photo de profil")]
         public Microsoft.AspNetCore.Http.IFormFile? ProfileImage { get; set; }
+
+        [DataType(DataType.Upload)]
+        [Display(Name = "Photo de couverture")]
+        public Microsoft.AspNetCore.Http.IFormFile? NewCoverImage { get; set; }
+
+        public string? CurrentCoverUrl { get; set; }
     }
 }

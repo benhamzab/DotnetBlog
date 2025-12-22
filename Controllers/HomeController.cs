@@ -18,13 +18,15 @@ namespace BLOGAURA.Controllers
         private readonly IPostService _postService;
         private readonly ApplicationDbContext _authContext;
         private readonly IFollowService _followService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public HomeController(ILogger<HomeController> logger, IPostService postService, ApplicationDbContext authContext, IFollowService followService)
+        public HomeController(ILogger<HomeController> logger, IPostService postService, ApplicationDbContext authContext, IFollowService followService, IWebHostEnvironment webHostEnvironment)
         {
             _logger = logger;
             _postService = postService;
             _authContext = authContext;
             _followService = followService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public async Task<IActionResult> Index()
@@ -157,6 +159,7 @@ namespace BLOGAURA.Controllers
                 DisplayName = user.DisplayName ?? user.UserName ?? "Utilisateur",
                 Username = user.UserName ?? string.Empty,
                 PhotoUrl = user.PhotoUrl,
+                CoverImageUrl = user.CoverImagePath,
                 Bio = user.About,
                 PostsCount = posts.Count,
                 FollowersCount = followersCount,
@@ -183,17 +186,6 @@ namespace BLOGAURA.Controllers
                 }
             }
             catch { }
-            if (targetUserId == currentUserId)
-            {
-                ViewBag.SettingsModel = new BLOGAURA.Models.Auth.EditProfileSettingsViewModel
-                {
-                    DisplayName = user.DisplayName,
-                    Email = user.Email,
-                    UserName = user.UserName,
-                    CurrentPhotoUrl = user.ProfilePictureUrl,
-                    ProfileUserId = user.Id
-                };
-            }
 
             return View(vm);
         }
@@ -226,6 +218,124 @@ namespace BLOGAURA.Controllers
 
             TempData["Success"] = "Votre description a été mise à jour avec succès.";
             return RedirectToAction("Profile");
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCover(IFormFile coverImage)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Json(new { success = false, message = "Non autorisé." });
+            }
+
+            var user = await _authContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Utilisateur introuvable." });
+            }
+
+            if (coverImage == null || coverImage.Length == 0)
+            {
+                return Json(new { success = false, message = "Veuillez sélectionner une image." });
+            }
+
+            // Validation
+            if (coverImage.Length > 5 * 1024 * 1024) // 5MB
+            {
+                return Json(new { success = false, message = "L'image ne doit pas dépasser 5 Mo." });
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(coverImage.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return Json(new { success = false, message = "Format de fichier non supporté." });
+            }
+
+            try
+            {
+                // Delete old cover if exists
+                if (!string.IsNullOrEmpty(user.CoverImagePath))
+                {
+                    // Handle both forward and backslashes
+                    var relativePath = user.CoverImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var oldPath = Path.Combine(_webHostEnvironment.WebRootPath, relativePath);
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                // Save new cover
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "covers");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var fileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await coverImage.CopyToAsync(stream);
+                }
+
+                // Store with forward slashes for web
+                user.CoverImagePath = $"/uploads/covers/{fileName}";
+                await _authContext.SaveChangesAsync();
+
+                return Json(new { success = true, newCoverUrl = user.CoverImagePath });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading cover image.");
+                return Json(new { success = false, message = "Erreur lors du téléchargement." });
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCover()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Json(new { success = false, message = "Non autorisé." });
+            }
+
+            var user = await _authContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Utilisateur introuvable." });
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(user.CoverImagePath))
+                {
+                    var relativePath = user.CoverImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var oldPath = Path.Combine(_webHostEnvironment.WebRootPath, relativePath);
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                user.CoverImagePath = null;
+                await _authContext.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting cover image.");
+                return Json(new { success = false, message = "Erreur lors de la suppression." });
+            }
         }
 
         public IActionResult Privacy()
